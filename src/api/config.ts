@@ -8,11 +8,11 @@
 // For local development
 const LOCAL_API_URL = 'http://localhost:8000/api/v1';
 
-// For production (Railway) - update this after deploying
-const PRODUCTION_API_URL = 'https://your-app.railway.app/api/v1';
+// For production (Railway)
+const PRODUCTION_API_URL = 'https://you-can-fi-production.up.railway.app/api/v1';
 
-// Toggle this based on environment
-const IS_PRODUCTION = false;
+// Automatically detect environment (true in production builds)
+const IS_PRODUCTION = !__DEV__;
 
 export const API_BASE_URL = IS_PRODUCTION ? PRODUCTION_API_URL : LOCAL_API_URL;
 

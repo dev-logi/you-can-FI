@@ -1,0 +1,18 @@
+/**
+ * Other Debts Question
+ */
+
+import React from 'react';
+import { QuestionScreen } from '../../../src/features/onboarding/components';
+import { QUESTION_IDS, QUESTIONS } from '../../../src/features/onboarding/engine';
+
+export default function OtherDebtsScreen() {
+  return (
+    <QuestionScreen
+      questionId={QUESTION_IDS.OTHER_DEBTS}
+      question={QUESTIONS[QUESTION_IDS.OTHER_DEBTS]}
+      nextRoute="/(onboarding)/tasks"
+    />
+  );
+}
+

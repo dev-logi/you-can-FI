@@ -15,7 +15,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.youcanfi.app"
+      "bundleIdentifier": "com.youcanfi.app",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -32,8 +35,14 @@
     },
     "plugins": [
       "expo-router",
-      "expo-sqlite",
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "9ba18edf-bf40-443a-9670-fe4afc89c02b"
+      }
+    },
+    "owner": "logi-dev"
   }
 }

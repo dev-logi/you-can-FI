@@ -8,7 +8,7 @@
  * - Navigation based on onboarding status
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { TamaguiProvider, YStack, Text, Spinner } from 'tamagui';
@@ -25,6 +25,8 @@ export default function RootLayout() {
   const [apiError, setApiError] = useState<string | null>(null);
   const router = useRouter();
   const segments = useSegments();
+  const hasNavigated = useRef(false);
+  const initialCheckDone = useRef(false);
 
   // Load fonts
   const [fontsLoaded] = useFonts({
@@ -45,8 +47,15 @@ export default function RootLayout() {
         }
 
         // Check onboarding status
-        const complete = await OnboardingApiService.isComplete();
-        setIsOnboardingComplete(complete);
+        // Default to showing onboarding if check fails (safer for new users)
+        try {
+          const complete = await OnboardingApiService.isComplete();
+          setIsOnboardingComplete(complete);
+        } catch (onboardingError) {
+          console.error('Failed to check onboarding status:', onboardingError);
+          // If onboarding check fails, default to showing onboarding
+          setIsOnboardingComplete(false);
+        }
         setIsReady(true);
       } catch (error) {
         console.error('Failed to initialize app:', error);
@@ -61,18 +70,37 @@ export default function RootLayout() {
   }, [fontsLoaded]);
 
   // Handle navigation based on onboarding status
+  // Only do initial navigation check once, then allow normal navigation
   useEffect(() => {
     if (!isReady) return;
 
     const inOnboarding = segments[0] === '(onboarding)';
     const inMain = segments[0] === '(main)';
 
-    if (isOnboardingComplete && !inMain) {
-      // Onboarding complete, go to main app
-      router.replace('/(main)');
-    } else if (!isOnboardingComplete && !inOnboarding) {
-      // Onboarding not complete, go to onboarding
-      router.replace('/(onboarding)');
+    // If this is the initial check, always enforce correct navigation
+    if (!initialCheckDone.current) {
+      if (isOnboardingComplete && inOnboarding) {
+        // Onboarding complete but in onboarding section, go to main app
+        router.replace('/(main)');
+        initialCheckDone.current = true;
+        return;
+      } else if (!isOnboardingComplete && inMain) {
+        // Onboarding not complete but in main app, go to onboarding
+        router.replace('/(onboarding)');
+        initialCheckDone.current = true;
+        return;
+      } else if (!isOnboardingComplete && !inOnboarding && !inMain) {
+        // Onboarding not complete and no route selected, go to onboarding
+        router.replace('/(onboarding)');
+        initialCheckDone.current = true;
+        return;
+      } else if (isOnboardingComplete && !inMain && !inOnboarding) {
+        // Onboarding complete and no route selected, go to main app
+        router.replace('/(main)');
+        initialCheckDone.current = true;
+        return;
+      }
+      initialCheckDone.current = true;
     }
   }, [isReady, isOnboardingComplete, segments]);
 

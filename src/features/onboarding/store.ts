@@ -79,18 +79,42 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const { nextQuestionId } = await OnboardingApiService.answerQuestion(questionId, answer);
+      const { nextQuestionId, tasksGenerated } = await OnboardingApiService.answerQuestion(questionId, answer);
 
-      // Refresh state
-      const state = await OnboardingApiService.getState();
+      // Update state optimistically without fetching full state
+      const currentState = get().state;
       const currentQuestion = nextQuestionId ? QUESTIONS[nextQuestionId] : null;
       const progress = nextQuestionId ? getQuestionProgress(nextQuestionId) : 100;
 
+      // Merge new tasks into existing tasks
+      const existingTasks = currentState?.tasks ?? [];
+      const newTasks = [...existingTasks, ...tasksGenerated];
+      
+      // Update state optimistically
+      const updatedState: OnboardingState | null = currentState ? {
+        ...currentState,
+        currentStepId: nextQuestionId ?? currentState.currentStepId,
+        answers: {
+          ...currentState.answers,
+          [questionId]: answer,
+        },
+        tasks: newTasks,
+      } : null;
+
       set({
         isLoading: false,
-        state,
+        state: updatedState,
         currentQuestion,
         progress,
+      });
+
+      // Fetch full state in background to ensure consistency (non-blocking)
+      OnboardingApiService.getState().then((fullState) => {
+        if (fullState) {
+          set({ state: fullState });
+        }
+      }).catch((err) => {
+        console.warn('[OnboardingStore] Background state refresh failed:', err);
       });
     } catch (error) {
       console.error('[OnboardingStore] Answer error:', error);

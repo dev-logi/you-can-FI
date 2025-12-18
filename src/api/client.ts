@@ -42,8 +42,14 @@ class ApiClientClass {
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     
+    // Use Promise.race for timeout - more reliable in React Native
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        controller.abort();
+        reject({ detail: 'Request timeout', status: 408 });
+      }, this.timeout);
+    });
 
     try {
       const options: RequestInit = {
@@ -56,34 +62,34 @@ class ApiClientClass {
         options.body = JSON.stringify(data);
       }
 
-      const response = await fetch(url, options);
-      clearTimeout(timeoutId);
+      const fetchPromise = fetch(url, options).then(async (response) => {
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          const error: ApiError = {
+            detail: errorData.detail || `Request failed with status ${response.status}`,
+            status: response.status,
+          };
+          throw error;
+        }
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const error: ApiError = {
-          detail: errorData.detail || `Request failed with status ${response.status}`,
-          status: response.status,
-        };
-        throw error;
-      }
+        // Handle 204 No Content
+        if (response.status === 204) {
+          return null as T;
+        }
 
-      // Handle 204 No Content
-      if (response.status === 204) {
-        return null as T;
-      }
+        return response.json();
+      });
 
-      return response.json();
+      return await Promise.race([fetchPromise, timeoutPromise]);
     } catch (error) {
-      clearTimeout(timeoutId);
-      
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw { detail: 'Request timeout', status: 408 };
-      }
-      
       // Re-throw API errors
       if ((error as ApiError).status) {
         throw error;
+      }
+      
+      // Check for AbortError
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw { detail: 'Request timeout', status: 408 };
       }
       
       // Network error

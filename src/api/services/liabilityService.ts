@@ -51,7 +51,7 @@ class LiabilityApiServiceClass {
    * Create a new liability.
    */
   async create(data: LiabilityCreateRequest): Promise<Liability> {
-    const response = await ApiClient.post<LiabilityResponse>('/liabilities', data);
+    const response = await ApiClient.post<LiabilityResponse>('/liabilities/', data);
     return toLiability(response);
   }
 
@@ -59,7 +59,7 @@ class LiabilityApiServiceClass {
    * Get all liabilities.
    */
   async list(): Promise<Liability[]> {
-    const response = await ApiClient.get<LiabilityResponse[]>('/liabilities');
+    const response = await ApiClient.get<LiabilityResponse[]>('/liabilities/');
     return response.map(toLiability);
   }
 

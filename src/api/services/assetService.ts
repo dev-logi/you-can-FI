@@ -47,7 +47,7 @@ class AssetApiServiceClass {
    * Create a new asset.
    */
   async create(data: AssetCreateRequest): Promise<Asset> {
-    const response = await ApiClient.post<AssetResponse>('/assets', data);
+    const response = await ApiClient.post<AssetResponse>('/assets/', data);
     return toAsset(response);
   }
 
@@ -55,7 +55,7 @@ class AssetApiServiceClass {
    * Get all assets.
    */
   async list(): Promise<Asset[]> {
-    const response = await ApiClient.get<AssetResponse[]>('/assets');
+    const response = await ApiClient.get<AssetResponse[]>('/assets/');
     return response.map(toAsset);
   }
 

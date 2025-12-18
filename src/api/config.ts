@@ -19,7 +19,7 @@ export const API_BASE_URL = USE_PRODUCTION_API ? PRODUCTION_API_URL : LOCAL_API_
 
 export const API_CONFIG = {
   baseUrl: API_BASE_URL,
-  timeout: 30000, // 30 seconds
+  timeout: 60000, // 60 seconds - increased for slower network connections
   headers: {
     'Content-Type': 'application/json',
   },

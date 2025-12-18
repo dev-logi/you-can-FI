@@ -89,7 +89,21 @@ export const useNetWorthStore = create<NetWorthStore>((set, get) => ({
 
     try {
       const asset = await NetWorthApiService.addAsset(data);
-      await get().refresh();
+      
+      // Add to local state immediately instead of full refresh
+      const currentAssets = get().assets;
+      const currentSummary = get().summary;
+      
+      set({ 
+        isLoading: false,
+        assets: [...currentAssets, asset],
+        summary: currentSummary ? {
+          ...currentSummary,
+          totalAssets: currentSummary.totalAssets + asset.value,
+          netWorth: currentSummary.netWorth + asset.value,
+        } : null,
+      });
+      
       return asset;
     } catch (error) {
       console.error('[NetWorthStore] Add asset error:', error);
@@ -106,8 +120,26 @@ export const useNetWorthStore = create<NetWorthStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      await NetWorthApiService.updateAsset(id, data);
-      await get().refresh();
+      const updatedAsset = await NetWorthApiService.updateAsset(id, data);
+      
+      if (updatedAsset) {
+        // Update in local state
+        const currentAssets = get().assets;
+        const oldAsset = currentAssets.find(a => a.id === id);
+        const valueDiff = updatedAsset.value - (oldAsset?.value ?? 0);
+        
+        set({ 
+          isLoading: false,
+          assets: currentAssets.map(a => a.id === id ? updatedAsset : a),
+          summary: get().summary ? {
+            ...get().summary!,
+            totalAssets: get().summary!.totalAssets + valueDiff,
+            netWorth: get().summary!.netWorth + valueDiff,
+          } : null,
+        });
+      } else {
+        set({ isLoading: false });
+      }
     } catch (error) {
       console.error('[NetWorthStore] Update asset error:', error);
       set({
@@ -124,7 +156,20 @@ export const useNetWorthStore = create<NetWorthStore>((set, get) => ({
 
     try {
       await NetWorthApiService.deleteAsset(id);
-      await get().refresh();
+      
+      // Remove from local state
+      const currentAssets = get().assets;
+      const deletedAsset = currentAssets.find(a => a.id === id);
+      
+      set({ 
+        isLoading: false,
+        assets: currentAssets.filter(a => a.id !== id),
+        summary: deletedAsset && get().summary ? {
+          ...get().summary!,
+          totalAssets: get().summary!.totalAssets - deletedAsset.value,
+          netWorth: get().summary!.netWorth - deletedAsset.value,
+        } : get().summary,
+      });
     } catch (error) {
       console.error('[NetWorthStore] Delete asset error:', error);
       set({
@@ -141,7 +186,21 @@ export const useNetWorthStore = create<NetWorthStore>((set, get) => ({
 
     try {
       const liability = await NetWorthApiService.addLiability(data);
-      await get().refresh();
+      
+      // Add to local state immediately instead of full refresh
+      const currentLiabilities = get().liabilities;
+      const currentSummary = get().summary;
+      
+      set({ 
+        isLoading: false,
+        liabilities: [...currentLiabilities, liability],
+        summary: currentSummary ? {
+          ...currentSummary,
+          totalLiabilities: currentSummary.totalLiabilities + liability.balance,
+          netWorth: currentSummary.netWorth - liability.balance,
+        } : null,
+      });
+      
       return liability;
     } catch (error) {
       console.error('[NetWorthStore] Add liability error:', error);
@@ -158,8 +217,26 @@ export const useNetWorthStore = create<NetWorthStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      await NetWorthApiService.updateLiability(id, data);
-      await get().refresh();
+      const updatedLiability = await NetWorthApiService.updateLiability(id, data);
+      
+      if (updatedLiability) {
+        // Update in local state
+        const currentLiabilities = get().liabilities;
+        const oldLiability = currentLiabilities.find(l => l.id === id);
+        const balanceDiff = updatedLiability.balance - (oldLiability?.balance ?? 0);
+        
+        set({ 
+          isLoading: false,
+          liabilities: currentLiabilities.map(l => l.id === id ? updatedLiability : l),
+          summary: get().summary ? {
+            ...get().summary!,
+            totalLiabilities: get().summary!.totalLiabilities + balanceDiff,
+            netWorth: get().summary!.netWorth - balanceDiff,
+          } : null,
+        });
+      } else {
+        set({ isLoading: false });
+      }
     } catch (error) {
       console.error('[NetWorthStore] Update liability error:', error);
       set({
@@ -176,7 +253,20 @@ export const useNetWorthStore = create<NetWorthStore>((set, get) => ({
 
     try {
       await NetWorthApiService.deleteLiability(id);
-      await get().refresh();
+      
+      // Remove from local state
+      const currentLiabilities = get().liabilities;
+      const deletedLiability = currentLiabilities.find(l => l.id === id);
+      
+      set({ 
+        isLoading: false,
+        liabilities: currentLiabilities.filter(l => l.id !== id),
+        summary: deletedLiability && get().summary ? {
+          ...get().summary!,
+          totalLiabilities: get().summary!.totalLiabilities - deletedLiability.balance,
+          netWorth: get().summary!.netWorth + deletedLiability.balance,
+        } : get().summary,
+      });
     } catch (error) {
       console.error('[NetWorthStore] Delete liability error:', error);
       set({

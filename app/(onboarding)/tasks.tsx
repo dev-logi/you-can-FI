@@ -5,8 +5,8 @@
  * User can fill in or skip each item.
  */
 
-import React, { useState } from 'react';
-import { useRouter } from 'expo-router';
+import React, { useState, useCallback } from 'react';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { YStack, XStack, Text, ScrollView } from 'tamagui';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Pressable, Modal, KeyboardAvoidingView, Platform } from 'react-native';
@@ -16,10 +16,34 @@ import { Button, Card, ProgressBar, Input, CurrencyInput } from '../../src/share
 import { useOnboardingStore } from '../../src/features/onboarding/store';
 import { DataEntryTask, AssetCategory, LiabilityCategory } from '../../src/shared/types';
 import { ASSET_CATEGORY_CONFIG, LIABILITY_CATEGORY_CONFIG } from '../../src/features/netWorth/service';
+import { OnboardingApiService } from '../../src/api/services/onboardingService';
 
 export default function TasksScreen() {
   const router = useRouter();
-  const { state, completeTask, skipTask, isLoading, goToStep } = useOnboardingStore();
+  const { state, completeTask, skipTask, isLoading, goToStep, init } = useOnboardingStore();
+
+  // Refresh state when screen comes into focus to ensure we have latest tasks
+  useFocusEffect(
+    useCallback(() => {
+      const refreshState = async () => {
+        try {
+          // If state is not initialized, initialize it
+          if (!state) {
+            await init();
+          } else {
+            // Otherwise, refresh to get latest tasks from backend
+            const freshState = await OnboardingApiService.getState();
+            if (freshState) {
+              useOnboardingStore.setState({ state: freshState });
+            }
+          }
+        } catch (error) {
+          console.error('[TasksScreen] Failed to refresh state:', error);
+        }
+      };
+      refreshState();
+    }, [state, init])
+  );
   const [activeTask, setActiveTask] = useState<DataEntryTask | null>(null);
   const [taskName, setTaskName] = useState('');
   const [taskValue, setTaskValue] = useState(0);
@@ -204,76 +228,82 @@ export default function TasksScreen() {
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={{ flex: 1 }}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 20}
         >
           <YStack
             flex={1}
             backgroundColor="rgba(0,0,0,0.5)"
             justifyContent="flex-end"
           >
-            <YStack
-              backgroundColor="#ffffff"
-              borderTopLeftRadius={24}
-              borderTopRightRadius={24}
-              padding={24}
-              paddingBottom={40}
-              gap={20}
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingBottom: 100 }}
+              showsVerticalScrollIndicator={false}
             >
-              {/* Modal Header */}
-              <XStack justifyContent="space-between" alignItems="center">
-                <Text fontSize={20} fontWeight="700" color="#2d3436">
-                  {activeTask?.defaultName}
-                </Text>
-                <Pressable onPress={() => setActiveTask(null)}>
-                  <Text fontSize={24} color="#636e72">×</Text>
-                </Pressable>
-              </XStack>
+              <YStack
+                backgroundColor="#ffffff"
+                borderTopLeftRadius={24}
+                borderTopRightRadius={24}
+                padding={24}
+                gap={20}
+              >
+                {/* Modal Header */}
+                <XStack justifyContent="space-between" alignItems="center">
+                  <Text fontSize={20} fontWeight="700" color="#2d3436" flex={1}>
+                    {activeTask?.defaultName}
+                  </Text>
+                  <Pressable onPress={() => setActiveTask(null)}>
+                    <Text fontSize={24} color="#636e72">×</Text>
+                  </Pressable>
+                </XStack>
 
-              {/* Form */}
-              <Input
-                label="Name"
-                placeholder="e.g., Chase Checking"
-                value={taskName}
-                onChangeText={setTaskName}
-              />
-
-              <CurrencyInput
-                label={activeTask?.type === 'asset' ? 'Current Value' : 'Current Balance'}
-                value={taskValue}
-                onChangeValue={setTaskValue}
-                placeholder="0"
-              />
-
-              {activeTask?.type === 'liability' && (
+                {/* Form */}
                 <Input
-                  label="Interest Rate (%)"
-                  placeholder="e.g., 6.5"
-                  keyboardType="decimal-pad"
-                  value={taskInterestRate > 0 ? taskInterestRate.toString() : ''}
-                  onChangeText={(text) => setTaskInterestRate(parseFloat(text) || 0)}
-                  helperText="Optional"
+                  label="Name"
+                  placeholder="e.g., Chase Checking"
+                  value={taskName}
+                  onChangeText={setTaskName}
                 />
-              )}
 
-              {/* Actions */}
-              <YStack gap={12}>
-                <Button
-                  variant="primary"
-                  fullWidth
-                  onPress={handleSaveTask}
-                  loading={isLoading}
-                  disabled={!taskName || taskValue <= 0}
-                >
-                  Save
-                </Button>
-                <Button
-                  variant="ghost"
-                  fullWidth
-                  onPress={handleSkipTask}
-                >
-                  Skip this item
-                </Button>
+                <CurrencyInput
+                  label={activeTask?.type === 'asset' ? 'Current Value' : 'Current Balance'}
+                  value={taskValue}
+                  onChangeValue={setTaskValue}
+                  placeholder="0"
+                />
+
+                {activeTask?.type === 'liability' && (
+                  <Input
+                    label="Interest Rate (%)"
+                    placeholder="e.g., 6.5"
+                    keyboardType="decimal-pad"
+                    value={taskInterestRate > 0 ? taskInterestRate.toString() : ''}
+                    onChangeText={(text) => setTaskInterestRate(parseFloat(text) || 0)}
+                    helperText="Optional"
+                  />
+                )}
+
+                {/* Actions */}
+                <YStack gap={12} marginTop={8}>
+                  <Button
+                    variant="primary"
+                    fullWidth
+                    onPress={handleSaveTask}
+                    loading={isLoading}
+                    disabled={!taskName || taskValue <= 0}
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    fullWidth
+                    onPress={handleSkipTask}
+                  >
+                    Skip this item
+                  </Button>
+                </YStack>
               </YStack>
-            </YStack>
+            </ScrollView>
           </YStack>
         </KeyboardAvoidingView>
       </Modal>

@@ -11,7 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Pressable, KeyboardAvoidingView, Platform } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { Button, Input, CurrencyInput, OptionButton } from '../../src/shared/components';
+import { Button, Card, Input, CurrencyInput, OptionButton } from '../../src/shared/components';
 import { useNetWorthStore } from '../../src/features/netWorth/store';
 import { LiabilityCategory } from '../../src/shared/types';
 
@@ -26,13 +26,14 @@ const LIABILITY_CATEGORIES: Array<{ value: LiabilityCategory; label: string }> =
 
 export default function AddLiabilityScreen() {
   const router = useRouter();
-  const { addLiability, isLoading } = useNetWorthStore();
+  const { addLiability, isLoading, error } = useNetWorthStore();
 
   const [step, setStep] = useState<'category' | 'details'>('category');
   const [category, setCategory] = useState<LiabilityCategory | null>(null);
   const [name, setName] = useState('');
   const [balance, setBalance] = useState(0);
   const [interestRate, setInterestRate] = useState('');
+  const [localError, setLocalError] = useState<string | null>(null);
 
   const handleCategorySelect = (cat: LiabilityCategory) => {
     setCategory(cat);
@@ -44,15 +45,21 @@ export default function AddLiabilityScreen() {
 
   const handleSave = async () => {
     if (!category) return;
+    setLocalError(null);
 
-    await addLiability({
-      category,
-      name,
-      balance,
-      interestRate: interestRate ? parseFloat(interestRate) : undefined,
-    });
-
-    router.back();
+    try {
+      await addLiability({
+        category,
+        name,
+        balance,
+        interestRate: interestRate ? parseFloat(interestRate) : undefined,
+      });
+      router.back();
+    } catch (error: any) {
+      console.error('Failed to add liability:', error);
+      const errorMessage = error?.detail || error?.message || 'Failed to add liability. Please try again.';
+      setLocalError(errorMessage);
+    }
   };
 
   return (
@@ -60,6 +67,7 @@ export default function AddLiabilityScreen() {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 20}
       >
         <YStack flex={1}>
           {/* Header */}
@@ -70,16 +78,26 @@ export default function AddLiabilityScreen() {
             alignItems="center"
             borderBottomWidth={1}
             borderBottomColor="#e0ddd8"
+            position="relative"
           >
             <Pressable onPress={() => router.back()}>
               <Text fontSize={16} color="#636e72">
                 Cancel
               </Text>
             </Pressable>
-            <Text fontSize={18} fontWeight="700" color="#2d3436">
+            <Text 
+              fontSize={18} 
+              fontWeight="700" 
+              color="#2d3436" 
+              position="absolute"
+              left={0}
+              right={0}
+              textAlign="center"
+              pointerEvents="none"
+            >
               Add Liability
             </Text>
-            <YStack width={50} />
+            <YStack width={60} />
           </XStack>
 
           {step === 'category' ? (
@@ -105,9 +123,14 @@ export default function AddLiabilityScreen() {
               </Animated.View>
             </ScrollView>
           ) : (
-            <YStack flex={1} padding={24} gap={24}>
+            <ScrollView 
+              flex={1} 
+              contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
               <Animated.View entering={FadeInDown.delay(100).springify()}>
-                <YStack gap={8}>
+                <YStack gap={8} marginBottom={24}>
                   <Pressable onPress={() => setStep('category')}>
                     <Text fontSize={14} color="#1e3a5f">
                       ← Change category
@@ -120,7 +143,7 @@ export default function AddLiabilityScreen() {
               </Animated.View>
 
               <Animated.View entering={FadeInDown.delay(200).springify()}>
-                <YStack gap={20}>
+                <YStack gap={20} marginBottom={24}>
                   <Input
                     label="Name"
                     placeholder="e.g., Chase Sapphire"
@@ -146,20 +169,27 @@ export default function AddLiabilityScreen() {
                 </YStack>
               </Animated.View>
 
-              <YStack flex={1} />
-
               <Animated.View entering={FadeInDown.delay(300).springify()}>
-                <Button
-                  variant="primary"
-                  fullWidth
-                  onPress={handleSave}
-                  loading={isLoading}
-                  disabled={!name || balance <= 0}
-                >
-                  Add Liability
-                </Button>
+                <YStack gap={12}>
+                  {(localError || error) && (
+                    <Card variant="warning">
+                      <Text fontSize={14} color="#d4a84b" textAlign="center">
+                        {localError || error}
+                      </Text>
+                    </Card>
+                  )}
+                  <Button
+                    variant="primary"
+                    fullWidth
+                    onPress={handleSave}
+                    loading={isLoading}
+                    disabled={!name || balance <= 0}
+                  >
+                    Add Liability
+                  </Button>
+                </YStack>
               </Animated.View>
-            </YStack>
+            </ScrollView>
           )}
         </YStack>
       </KeyboardAvoidingView>

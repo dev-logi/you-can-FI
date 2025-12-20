@@ -5,7 +5,9 @@
     "buildCommand": "npm run build:web"
   },
   "deploy": {
-    "startCommand": "node server.js"
+    "startCommand": "node server.js",
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 100
   }
 }
 

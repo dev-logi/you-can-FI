@@ -46,6 +46,13 @@ const mimeTypes = {
 const server = http.createServer((req, res) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
   
+  // Healthcheck endpoint
+  if (req.url === '/health' || req.url === '/healthcheck') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }));
+    return;
+  }
+  
   let filePath = path.join(DIST_DIR, req.url === '/' ? 'index.html' : req.url);
   
   // Remove query string

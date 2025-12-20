@@ -13,6 +13,7 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
 import { Button, Card } from '../../src/shared/components';
 import { useNetWorthStore } from '../../src/features/netWorth/store';
+import { useAuthStore } from '@/features/auth/store';
 import { formatCurrency } from '../../src/shared/utils';
 
 export default function DashboardScreen() {
@@ -26,6 +27,12 @@ export default function DashboardScreen() {
     isLoading,
     refresh,
   } = useNetWorthStore();
+  const { signOut, user } = useAuthStore();
+
+  const handleLogout = async () => {
+    await signOut();
+    router.replace('/(auth)/login');
+  };
 
   // Refresh data when screen is focused
   useFocusEffect(
@@ -69,16 +76,25 @@ export default function DashboardScreen() {
                   Dashboard
                 </Text>
               </YStack>
-              <YStack
-                width={48}
-                height={48}
-                borderRadius={24}
-                backgroundColor="#1e3a5f"
-                alignItems="center"
-                justifyContent="center"
-              >
-                <Text fontSize={24}>💰</Text>
-              </YStack>
+              <XStack gap={8} alignItems="center">
+                {user && (
+                  <Pressable onPress={handleLogout}>
+                    <Text fontSize={12} color="#636e72">
+                      Logout
+                    </Text>
+                  </Pressable>
+                )}
+                <YStack
+                  width={48}
+                  height={48}
+                  borderRadius={24}
+                  backgroundColor="#1e3a5f"
+                  alignItems="center"
+                  justifyContent="center"
+                >
+                  <Text fontSize={24}>💰</Text>
+                </YStack>
+              </XStack>
             </XStack>
           </Animated.View>
 

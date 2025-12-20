@@ -1,19 +1,19 @@
 const { getDefaultConfig } = require('expo/metro-config');
 const path = require('path');
 
-const config = getDefaultConfig(__dirname);
+const projectRoot = __dirname;
+const monorepoRoot = path.resolve(projectRoot, '../..');
+
+const config = getDefaultConfig(projectRoot);
 
 // Add path alias resolution
 config.resolver = {
   ...config.resolver,
   alias: {
-    '@': path.resolve(__dirname, 'src'),
-    '@/database': path.resolve(__dirname, 'src/database'),
-    '@/features': path.resolve(__dirname, 'src/features'),
-    '@/shared': path.resolve(__dirname, 'src/shared'),
-  },
-  extraNodeModules: {
-    ...config.resolver.extraNodeModules,
+    '@': path.resolve(projectRoot, 'src'),
+    '@/database': path.resolve(projectRoot, 'src/database'),
+    '@/features': path.resolve(projectRoot, 'src/features'),
+    '@/shared': path.resolve(projectRoot, 'src/shared'),
   },
 };
 

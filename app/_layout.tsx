@@ -4,8 +4,9 @@
  * This is the entry point for the app.
  * Handles:
  * - Tamagui provider setup
+ * - Authentication state
  * - API health check
- * - Navigation based on onboarding status
+ * - Navigation based on auth and onboarding status
  */
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -18,6 +19,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import config from '../tamagui.config';
 import { OnboardingApiService } from '../src/api/services/onboardingService';
 import { ApiClient } from '../src/api/client';
+import { useAuthStore } from '@/features/auth/store';
 
 export default function RootLayout() {
   const [isReady, setIsReady] = useState(false);
@@ -28,38 +30,66 @@ export default function RootLayout() {
   const hasNavigated = useRef(false);
   const initialCheckDone = useRef(false);
 
+  // Auth state
+  const { user, session, isInitialized, initialize } = useAuthStore();
+
   // Load fonts
   const [fontsLoaded] = useFonts({
     Inter: require('@tamagui/font-inter/otf/Inter-Medium.otf'),
     InterBold: require('@tamagui/font-inter/otf/Inter-Bold.otf'),
   });
 
-  // Check API and onboarding status
+  // Initialize auth and check API/onboarding status
   useEffect(() => {
     async function init() {
       try {
-        // Check if API is healthy
-        const isHealthy = await ApiClient.healthCheck();
-        if (!isHealthy) {
-          setApiError('Cannot connect to server. Please check your connection.');
-          setIsReady(true);
-          return;
+        // Initialize auth first
+        await initialize();
+
+        // Get the latest auth state after initialization
+        const authState = useAuthStore.getState();
+        const currentSession = authState.session;
+        const currentUser = authState.user;
+
+        // Set auth token in API client if user is authenticated
+        if (currentSession?.access_token) {
+          ApiClient.setAuthToken(currentSession.access_token);
         }
 
-        // Check onboarding status
-        // Default to showing onboarding if check fails (safer for new users)
-        try {
-          const complete = await OnboardingApiService.isComplete();
-          setIsOnboardingComplete(complete);
-        } catch (onboardingError) {
-          console.error('Failed to check onboarding status:', onboardingError);
-          // If onboarding check fails, default to showing onboarding
-          setIsOnboardingComplete(false);
+        // Check if API is healthy (non-blocking for unauthenticated users)
+        // Allow app to load even if API is down, so users can at least see login screen
+        const isHealthy = await ApiClient.healthCheck();
+        if (!isHealthy) {
+          // Only show error if user is authenticated (they need the API)
+          // For unauthenticated users, allow them to see login screen
+          if (currentUser) {
+            setApiError('Cannot connect to server. Please check your connection.');
+            setIsReady(true);
+            return;
+          }
+          // For unauthenticated users, continue without API check
+          // They can still see login screen
+        }
+
+        // Only check onboarding if user is authenticated
+        if (currentUser) {
+          try {
+            const complete = await OnboardingApiService.isComplete();
+            setIsOnboardingComplete(complete);
+          } catch (onboardingError) {
+            console.error('Failed to check onboarding status:', onboardingError);
+            setIsOnboardingComplete(false);
+          }
         }
         setIsReady(true);
       } catch (error) {
         console.error('Failed to initialize app:', error);
-        setApiError('Failed to connect to server.');
+        // Don't block app loading on error - allow login screen to show
+        // Only set error if user is authenticated
+        const authState = useAuthStore.getState();
+        if (authState.user) {
+          setApiError('Failed to connect to server.');
+        }
         setIsReady(true);
       }
     }
@@ -69,40 +99,55 @@ export default function RootLayout() {
     }
   }, [fontsLoaded]);
 
-  // Handle navigation based on onboarding status
-  // Only do initial navigation check once, then allow normal navigation
+  // Update API client token when session changes
+  useEffect(() => {
+    if (session?.access_token) {
+      ApiClient.setAuthToken(session.access_token);
+    } else {
+      ApiClient.clearAuthToken();
+    }
+  }, [session]);
+
+  // Handle navigation based on auth and onboarding status
   useEffect(() => {
     if (!isReady) return;
 
+    const inAuth = segments[0] === '(auth)';
     const inOnboarding = segments[0] === '(onboarding)';
     const inMain = segments[0] === '(main)';
 
     // If this is the initial check, always enforce correct navigation
     if (!initialCheckDone.current) {
-      if (isOnboardingComplete && inOnboarding) {
-        // Onboarding complete but in onboarding section, go to main app
-        router.replace('/(main)');
-        initialCheckDone.current = true;
-        return;
-      } else if (!isOnboardingComplete && inMain) {
-        // Onboarding not complete but in main app, go to onboarding
-        router.replace('/(onboarding)');
-        initialCheckDone.current = true;
-        return;
-      } else if (!isOnboardingComplete && !inOnboarding && !inMain) {
-        // Onboarding not complete and no route selected, go to onboarding
-        router.replace('/(onboarding)');
-        initialCheckDone.current = true;
-        return;
-      } else if (isOnboardingComplete && !inMain && !inOnboarding) {
-        // Onboarding complete and no route selected, go to main app
-        router.replace('/(main)');
+      // If not authenticated, go to auth
+      if (!user && !inAuth) {
+        router.replace('/(auth)/login');
         initialCheckDone.current = true;
         return;
       }
+
+      // If authenticated, handle onboarding/main navigation
+      if (user) {
+        if (isOnboardingComplete && inOnboarding) {
+          router.replace('/(main)');
+          initialCheckDone.current = true;
+          return;
+        } else if (!isOnboardingComplete && inMain) {
+          router.replace('/(onboarding)');
+          initialCheckDone.current = true;
+          return;
+        } else if (!isOnboardingComplete && !inOnboarding && !inMain && !inAuth) {
+          router.replace('/(onboarding)');
+          initialCheckDone.current = true;
+          return;
+        } else if (isOnboardingComplete && !inMain && !inOnboarding && !inAuth) {
+          router.replace('/(main)');
+          initialCheckDone.current = true;
+          return;
+        }
+      }
       initialCheckDone.current = true;
     }
-  }, [isReady, isOnboardingComplete, segments]);
+  }, [isReady, user, isOnboardingComplete, segments]);
 
   if (!fontsLoaded || !isReady) {
     return (
@@ -145,6 +190,7 @@ export default function RootLayout() {
             animation: 'slide_from_right',
           }}
         >
+          <Stack.Screen name="(auth)" />
           <Stack.Screen name="(onboarding)" />
           <Stack.Screen name="(main)" />
         </Stack>

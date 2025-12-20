@@ -44,12 +44,22 @@ const mimeTypes = {
 };
 
 const server = http.createServer((req, res) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - Connection received`);
   
-  // Healthcheck endpoint
+  // Healthcheck endpoint - respond immediately
   if (req.url === '/health' || req.url === '/healthcheck') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }));
+    console.log(`[${new Date().toISOString()}] Healthcheck requested - responding with 200 OK`);
+    res.writeHead(200, { 
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache'
+    });
+    res.end(JSON.stringify({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString(),
+      port: PORT,
+      uptime: process.uptime()
+    }));
+    console.log(`[${new Date().toISOString()}] Healthcheck response sent`);
     return;
   }
   
@@ -93,7 +103,13 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running at http://0.0.0.0:${PORT}/`);
+  console.log(`✅ Server successfully started and listening on http://0.0.0.0:${PORT}/`);
+  console.log(`✅ Server is ready to accept connections`);
+  console.log(`✅ Healthcheck available at http://0.0.0.0:${PORT}/health`);
+  
+  // Verify server is actually listening
+  const address = server.address();
+  console.log(`✅ Server address: ${JSON.stringify(address)}`);
 });
 
 // Handle errors

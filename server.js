@@ -5,6 +5,15 @@ const path = require('path');
 const PORT = process.env.PORT || 3000;
 const DIST_DIR = path.join(__dirname, 'dist');
 
+// Verify dist directory exists
+if (!fs.existsSync(DIST_DIR)) {
+  console.error(`ERROR: dist directory does not exist at ${DIST_DIR}`);
+  process.exit(1);
+}
+
+console.log(`Starting server on port ${PORT}`);
+console.log(`Serving files from ${DIST_DIR}`);
+
 // MIME types
 const mimeTypes = {
   '.html': 'text/html',
@@ -64,5 +73,18 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running at http://0.0.0.0:${PORT}/`);
+});
+
+// Handle errors
+server.on('error', (err) => {
+  console.error('Server error:', err);
+  process.exit(1);
+});
+
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  server.close(() => {
+    process.exit(0);
+  });
 });
 

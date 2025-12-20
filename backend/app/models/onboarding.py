@@ -26,6 +26,7 @@ class OnboardingState(Base):
     __tablename__ = "onboarding_state"
     
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True, unique=True)
     current_step_id: Mapped[str] = mapped_column(String(50), nullable=False)
     household_type: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     

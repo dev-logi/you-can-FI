@@ -38,12 +38,23 @@ app = FastAPI(
 )
 
 # Configure CORS
+# Allow all origins in development, specific origins in production
+cors_origins = settings.cors_origins
+if cors_origins == ["*"]:
+    # In development, allow all origins
+    cors_origins = ["*"]
+else:
+    # In production, ensure HTTPS origins are included
+    cors_origins = list(cors_origins)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,  # Cache preflight requests for 1 hour
 )
 
 # Include API routes

@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.auth import get_current_user
 from app.services.onboarding_service import onboarding_service
 from app.schemas.onboarding import (
     OnboardingStateResponse,
@@ -36,28 +37,41 @@ class StatusResponse(BaseModel):
 
 
 @router.get("/", response_model=OnboardingStateResponse)
-def get_or_create_onboarding(db: Session = Depends(get_db)):
+def get_or_create_onboarding(
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
+):
     """
     Get current onboarding state or create new one.
     Use this to start or resume onboarding.
     """
-    return onboarding_service.get_or_create_state(db)
+    return onboarding_service.get_or_create_state(db, user_id)
 
 
 @router.get("/status", response_model=StatusResponse)
-def get_onboarding_status(db: Session = Depends(get_db)):
+def get_onboarding_status(
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
+):
     """Check if onboarding is complete."""
-    return StatusResponse(is_complete=onboarding_service.is_complete(db))
+    return StatusResponse(is_complete=onboarding_service.is_complete(db, user_id))
 
 
 @router.get("/progress", response_model=OnboardingProgress)
-def get_onboarding_progress(db: Session = Depends(get_db)):
+def get_onboarding_progress(
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
+):
     """Get onboarding progress."""
-    return onboarding_service.get_progress(db)
+    return onboarding_service.get_progress(db, user_id)
 
 
 @router.post("/answer", response_model=AnswerResponse)
-def answer_question(request: OnboardingAnswerRequest, db: Session = Depends(get_db)):
+def answer_question(
+    request: OnboardingAnswerRequest,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
+):
     """
     Answer a question in the onboarding flow.
     Returns the next question ID and any tasks generated.
@@ -65,7 +79,8 @@ def answer_question(request: OnboardingAnswerRequest, db: Session = Depends(get_
     next_question_id, tasks = onboarding_service.answer_question(
         db, 
         request.question_id, 
-        request.answer
+        request.answer,
+        user_id
     )
     return AnswerResponse(
         next_question_id=next_question_id,
@@ -74,14 +89,22 @@ def answer_question(request: OnboardingAnswerRequest, db: Session = Depends(get_
 
 
 @router.post("/household")
-def set_household_type(request: OnboardingHouseholdRequest, db: Session = Depends(get_db)):
+def set_household_type(
+    request: OnboardingHouseholdRequest,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
+):
     """Set the household type."""
-    onboarding_service.set_household_type(db, request.household_type.value)
+    onboarding_service.set_household_type(db, request.household_type.value, user_id)
     return {"status": "ok"}
 
 
 @router.post("/task/complete")
-def complete_task(request: TaskCompleteRequest, db: Session = Depends(get_db)):
+def complete_task(
+    request: TaskCompleteRequest,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
+):
     """
     Complete a data entry task by creating the asset/liability.
     """
@@ -92,6 +115,7 @@ def complete_task(request: TaskCompleteRequest, db: Session = Depends(get_db)):
             request.name,
             request.value,
             request.interest_rate,
+            user_id
         )
         return {"status": "ok", "entity_id": entity_id}
     except ValueError as e:
@@ -102,32 +126,46 @@ def complete_task(request: TaskCompleteRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/task/skip")
-def skip_task(request: TaskSkipRequest, db: Session = Depends(get_db)):
+def skip_task(
+    request: TaskSkipRequest,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
+):
     """Skip a task without creating an entity."""
-    onboarding_service.skip_task(db, request.task_id)
+    onboarding_service.skip_task(db, request.task_id, user_id)
     return {"status": "ok"}
 
 
 @router.post("/complete")
-def complete_onboarding(db: Session = Depends(get_db)):
+def complete_onboarding(
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
+):
     """Mark onboarding as complete."""
-    onboarding_service.complete_onboarding(db)
+    onboarding_service.complete_onboarding(db, user_id)
     return {"status": "ok"}
 
 
 @router.post("/go-to-step")
-def go_to_step(step_id: str, db: Session = Depends(get_db)):
+def go_to_step(
+    step_id: str,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
+):
     """Navigate to a specific step."""
-    onboarding_service.go_to_step(db, step_id)
+    onboarding_service.go_to_step(db, step_id, user_id)
     return {"status": "ok"}
 
 
 @router.delete("/reset")
-def reset_onboarding(db: Session = Depends(get_db)):
+def reset_onboarding(
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
+):
     """
     Reset onboarding and delete all data.
-    WARNING: This deletes all assets and liabilities!
+    WARNING: This deletes all assets and liabilities for the current user!
     """
-    onboarding_service.reset(db)
+    onboarding_service.reset(db, user_id)
     return {"status": "ok"}
 

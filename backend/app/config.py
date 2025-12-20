@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     # CORS - add your mobile app's origin in production
     cors_origins: list[str] = ["*"]
     
+    # Supabase JWT Secret for token verification
+    supabase_jwt_secret: str = "PLBuWudal9yVmZP22EjfW1RP39IVv0/Jyji682nTGDzbwFyUAY0Gf1XVbdefVrUoYE7D0UX5/eoqJtBbbFNhwg=="
+    
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

@@ -27,6 +27,7 @@ class Liability(Base):
     __tablename__ = "liabilities"
     
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
     category: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     balance: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)

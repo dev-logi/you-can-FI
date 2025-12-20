@@ -92,14 +92,14 @@ TASK_GENERATION_RULES = {
 class OnboardingService:
     """Service for onboarding flow management."""
     
-    def get_or_create_state(self, db: Session) -> OnboardingStateResponse:
+    def get_or_create_state(self, db: Session, user_id: str) -> OnboardingStateResponse:
         """Get or create onboarding state."""
-        state = onboarding_repository.get_or_create(db)
+        state = onboarding_repository.get_or_create(db, user_id)
         return self._to_response(state)
     
-    def get_state(self, db: Session) -> Optional[OnboardingStateResponse]:
+    def get_state(self, db: Session, user_id: str) -> Optional[OnboardingStateResponse]:
         """Get current onboarding state."""
-        state = onboarding_repository.get_default(db)
+        state = onboarding_repository.get_default(db, user_id)
         if not state:
             return None
         return self._to_response(state)
@@ -108,29 +108,30 @@ class OnboardingService:
         self, 
         db: Session, 
         question_id: str, 
-        answer: Union[str, List[str]]
+        answer: Union[str, List[str]],
+        user_id: str
     ) -> Tuple[Optional[str], List[DataEntryTask]]:
         """
         Answer a question and generate tasks.
         Returns (next_question_id, generated_tasks).
         """
         # Save the answer
-        onboarding_repository.save_answer(db, question_id, answer)
+        onboarding_repository.save_answer(db, question_id, answer, user_id)
         
         # Generate tasks based on answer
-        tasks = self._generate_tasks(db, question_id, answer)
+        tasks = self._generate_tasks(db, question_id, answer, user_id)
         
         # Get next question
         next_question_id = self._get_next_question(question_id)
         
         if next_question_id:
-            onboarding_repository.update_current_step(db, next_question_id)
+            onboarding_repository.update_current_step(db, next_question_id, user_id)
         
         return next_question_id, tasks
     
-    def set_household_type(self, db: Session, household_type: str) -> None:
+    def set_household_type(self, db: Session, household_type: str, user_id: str) -> None:
         """Set the household type."""
-        onboarding_repository.set_household_type(db, household_type)
+        onboarding_repository.set_household_type(db, household_type, user_id)
     
     def complete_task(
         self, 
@@ -138,10 +139,11 @@ class OnboardingService:
         task_id: str, 
         name: str, 
         value: float,
-        interest_rate: Optional[float] = None
+        interest_rate: Optional[float],
+        user_id: str
     ) -> str:
         """Complete a task by creating the asset/liability."""
-        tasks = onboarding_repository.get_tasks(db)
+        tasks = onboarding_repository.get_tasks(db, user_id)
         task = next((t for t in tasks if t.id == task_id), None)
         
         if not task:
@@ -153,37 +155,44 @@ class OnboardingService:
                 "category": task.category,
                 "name": name,
                 "value": value,
-            })
+            }, user_id)
         else:
             entity = liability_repository.create(db, {
                 "category": task.category,
                 "name": name,
                 "balance": value,
                 "interest_rate": interest_rate,
-            })
+            }, user_id)
         
         # Mark task complete
-        onboarding_repository.complete_task(db, task_id, entity.id)
+        onboarding_repository.complete_task(db, task_id, entity.id, user_id)
         
         return entity.id
     
-    def skip_task(self, db: Session, task_id: str) -> None:
+    def skip_task(self, db: Session, task_id: str, user_id: str) -> None:
         """Skip a task without creating an entity."""
-        onboarding_repository.skip_task(db, task_id)
+        onboarding_repository.skip_task(db, task_id, user_id)
     
-    def complete_onboarding(self, db: Session) -> None:
+    def complete_onboarding(self, db: Session, user_id: str) -> None:
         """Mark onboarding as complete."""
-        onboarding_repository.mark_complete(db)
+        onboarding_repository.mark_complete(db, user_id)
     
-    def reset(self, db: Session) -> None:
-        """Reset onboarding and delete all data."""
-        asset_repository.delete_all(db)
-        liability_repository.delete_all(db)
-        onboarding_repository.reset(db)
+    def reset(self, db: Session, user_id: str) -> None:
+        """Reset onboarding and delete all data for the user."""
+        # Delete all assets and liabilities for the user
+        assets = asset_repository.get_all(db, user_id)
+        for asset in assets:
+            asset_repository.delete(db, asset.id, user_id)
+        
+        liabilities = liability_repository.get_all(db, user_id)
+        for liability in liabilities:
+            liability_repository.delete(db, liability.id, user_id)
+        
+        onboarding_repository.reset(db, user_id)
     
-    def get_progress(self, db: Session) -> OnboardingProgress:
+    def get_progress(self, db: Session, user_id: str) -> OnboardingProgress:
         """Get onboarding progress."""
-        state = onboarding_repository.get_default(db)
+        state = onboarding_repository.get_default(db, user_id)
         if not state:
             return OnboardingProgress(
                 current_step=0,
@@ -201,19 +210,20 @@ class OnboardingService:
             percentage=round(percentage, 1),
         )
     
-    def is_complete(self, db: Session) -> bool:
+    def is_complete(self, db: Session, user_id: str) -> bool:
         """Check if onboarding is complete."""
-        return onboarding_repository.is_complete(db)
+        return onboarding_repository.is_complete(db, user_id)
     
-    def go_to_step(self, db: Session, step_id: str) -> None:
+    def go_to_step(self, db: Session, step_id: str, user_id: str) -> None:
         """Navigate to a specific step."""
-        onboarding_repository.update_current_step(db, step_id)
+        onboarding_repository.update_current_step(db, step_id, user_id)
     
     def _generate_tasks(
         self, 
         db: Session, 
         question_id: str, 
-        answer: Union[str, List[str]]
+        answer: Union[str, List[str]],
+        user_id: str
     ) -> List[DataEntryTask]:
         """Generate tasks based on question answer."""
         rules = TASK_GENERATION_RULES.get(question_id, {})
@@ -228,7 +238,7 @@ class OnboardingService:
                 tasks_to_create.extend(rules[ans])
         
         if tasks_to_create:
-            return onboarding_repository.add_tasks(db, tasks_to_create)
+            return onboarding_repository.add_tasks(db, tasks_to_create, user_id)
         
         return []
     

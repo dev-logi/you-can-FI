@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.youcanfi.app",
-      "buildNumber": "2",
+      "buildNumber": "9",
       "config": {
         "usesNonExemptEncryption": false
       }
@@ -29,7 +29,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.youcanfi.app",
-      "versionCode": 2
+      "versionCode": 9
     },
     "web": {
       "favicon": "./assets/favicon.png",

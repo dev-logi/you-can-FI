@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
+import { Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
 import { YStack, Text } from 'tamagui';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -75,67 +76,79 @@ export function QuestionScreen({ questionId, question, nextRoute }: QuestionScre
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#faf8f5' }}>
-      <YStack flex={1} padding={24}>
-        {/* Progress */}
-        <Animated.View entering={FadeInDown.delay(100).springify()}>
-          <ProgressBar progress={progress} />
-        </Animated.View>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <YStack flex={1} padding={24} paddingBottom={40}>
+            {/* Progress */}
+            <Animated.View entering={FadeInDown.delay(100).springify()}>
+              <ProgressBar progress={progress} />
+            </Animated.View>
 
-        {/* Question */}
-        <YStack flex={1} justifyContent="center" gap={32}>
-          <Animated.View entering={FadeInDown.delay(200).springify()}>
-            <YStack gap={8}>
-              <Text
-                fontSize={28}
-                fontWeight="700"
-                color="#2d3436"
-                fontFamily="$heading"
+            {/* Question */}
+            <YStack flex={1} justifyContent="center" gap={32} minHeight={400}>
+              <Animated.View entering={FadeInDown.delay(200).springify()}>
+                <YStack gap={8}>
+                  <Text
+                    fontSize={28}
+                    fontWeight="700"
+                    color="#2d3436"
+                    fontFamily="$heading"
+                  >
+                    {question.title}
+                  </Text>
+                  {question.subtitle && (
+                    <Text fontSize={16} color="#636e72">
+                      {question.subtitle}
+                    </Text>
+                  )}
+                </YStack>
+              </Animated.View>
+
+              {/* Options */}
+              <Animated.View entering={FadeInDown.delay(300).springify()}>
+                <YStack gap={12}>
+                  {question.options?.map((option) => {
+                    const isSelected = isMultiChoice
+                      ? selectedMulti.includes(option.value)
+                      : selectedSingle === option.value;
+
+                    return (
+                      <OptionButton
+                        key={option.id}
+                        label={option.label}
+                        selected={isSelected}
+                        onPress={() => handleOptionPress(option.value)}
+                        radio={!isMultiChoice}
+                      />
+                    );
+                  })}
+                </YStack>
+              </Animated.View>
+            </YStack>
+
+            {/* Footer - Always visible at bottom */}
+            <Animated.View entering={FadeInDown.delay(400).springify()}>
+              <Button
+                variant="primary"
+                fullWidth
+                onPress={handleContinue}
+                disabled={!canContinue}
+                loading={isLoading}
               >
-                {question.title}
-              </Text>
-              {question.subtitle && (
-                <Text fontSize={16} color="#636e72">
-                  {question.subtitle}
-                </Text>
-              )}
-            </YStack>
-          </Animated.View>
-
-          {/* Options */}
-          <Animated.View entering={FadeInDown.delay(300).springify()}>
-            <YStack gap={12}>
-              {question.options?.map((option) => {
-                const isSelected = isMultiChoice
-                  ? selectedMulti.includes(option.value)
-                  : selectedSingle === option.value;
-
-                return (
-                  <OptionButton
-                    key={option.id}
-                    label={option.label}
-                    selected={isSelected}
-                    onPress={() => handleOptionPress(option.value)}
-                    radio={!isMultiChoice}
-                  />
-                );
-              })}
-            </YStack>
-          </Animated.View>
-        </YStack>
-
-        {/* Footer */}
-        <Animated.View entering={FadeInDown.delay(400).springify()}>
-          <Button
-            variant="primary"
-            fullWidth
-            onPress={handleContinue}
-            disabled={!canContinue}
-            loading={isLoading}
-          >
-            Continue
-          </Button>
-        </Animated.View>
-      </YStack>
+                Continue
+              </Button>
+            </Animated.View>
+          </YStack>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

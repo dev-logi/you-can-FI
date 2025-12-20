@@ -4,19 +4,6 @@ module.exports = function (api) {
     presets: ['babel-preset-expo'],
     plugins: [
       [
-        'module-resolver',
-        {
-          root: ['./'],
-          alias: {
-            '@': './src',
-            '@/database': './src/database',
-            '@/features': './src/features',
-            '@/shared': './src/shared',
-          },
-          extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
-        },
-      ],
-      [
         '@tamagui/babel-plugin',
         {
           components: ['tamagui'],

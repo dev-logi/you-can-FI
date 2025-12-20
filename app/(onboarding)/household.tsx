@@ -10,14 +10,14 @@ import { YStack, Text } from 'tamagui';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { Button, ProgressBar, OptionButton } from '../../src/shared/components';
+import { Button, ProgressBar, OptionButton } from '../../src/shared/components/index';
 import { useOnboardingStore } from '../../src/features/onboarding/store';
 import { QUESTION_IDS, QUESTIONS } from '../../src/features/onboarding/engine';
 import { HouseholdType } from '../../src/shared/types';
 
 export default function HouseholdScreen() {
   const router = useRouter();
-  const { answerQuestion, setHouseholdType, progress, isLoading } = useOnboardingStore();
+  const { answerQuestion, progress, isLoading } = useOnboardingStore();
   const [selected, setSelected] = useState<HouseholdType | null>(null);
 
   const question = QUESTIONS[QUESTION_IDS.HOUSEHOLD];
@@ -25,7 +25,7 @@ export default function HouseholdScreen() {
   const handleContinue = async () => {
     if (!selected) return;
 
-    await setHouseholdType(selected);
+    // answerQuestion already saves the household type, no need for separate call
     await answerQuestion(QUESTION_IDS.HOUSEHOLD, selected);
     router.push('/(onboarding)/assets/cash');
   };

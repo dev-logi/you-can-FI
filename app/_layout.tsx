@@ -19,7 +19,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import config from '../tamagui.config';
 import { OnboardingApiService } from '../src/api/services/onboardingService';
 import { ApiClient } from '../src/api/client';
-import { useAuthStore } from '@/features/auth/store';
+import { useAuthStore } from '../src/features/auth/store';
 
 export default function RootLayout() {
   const [isReady, setIsReady] = useState(false);

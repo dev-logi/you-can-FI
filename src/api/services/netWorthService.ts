@@ -44,7 +44,7 @@ class NetWorthApiServiceClass {
    * Calculate complete net worth summary.
    */
   async calculate(): Promise<NetWorthSummary> {
-    const response = await ApiClient.get<NetWorthResponse>('/net-worth');
+    const response = await ApiClient.get<NetWorthResponse>('/net-worth/');
     
     return {
       totalAssets: response.total_assets,
@@ -60,7 +60,7 @@ class NetWorthApiServiceClass {
    * Get asset breakdown for charts.
    */
   async getAssetBreakdown(): Promise<CategoryBreakdown[]> {
-    const response = await ApiClient.get<NetWorthResponse>('/net-worth');
+    const response = await ApiClient.get<NetWorthResponse>('/net-worth/');
     return response.asset_breakdown.map((item) => ({
       category: item.category as AssetCategory,
       label: item.label,
@@ -74,7 +74,7 @@ class NetWorthApiServiceClass {
    * Get liability breakdown for charts.
    */
   async getLiabilityBreakdown(): Promise<CategoryBreakdown[]> {
-    const response = await ApiClient.get<NetWorthResponse>('/net-worth');
+    const response = await ApiClient.get<NetWorthResponse>('/net-worth/');
     return response.liability_breakdown.map((item) => ({
       category: item.category as LiabilityCategory,
       label: item.label,

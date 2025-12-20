@@ -18,14 +18,14 @@ from app.schemas.liability import LIABILITY_CATEGORY_INFO, LiabilityCategory
 class NetWorthService:
     """Service for net worth calculations."""
     
-    def calculate(self, db: Session) -> NetWorthSummary:
+    def calculate(self, db: Session, user_id: str) -> NetWorthSummary:
         """Calculate complete net worth summary."""
-        total_assets = asset_repository.get_total_value(db)
-        total_liabilities = liability_repository.get_total_balance(db)
+        total_assets = asset_repository.get_total_value(db, user_id)
+        total_liabilities = liability_repository.get_total_balance(db, user_id)
         net_worth = total_assets - total_liabilities
         
-        assets_by_category = asset_repository.get_value_by_category(db)
-        liabilities_by_category = liability_repository.get_balance_by_category(db)
+        assets_by_category = asset_repository.get_value_by_category(db, user_id)
+        liabilities_by_category = liability_repository.get_balance_by_category(db, user_id)
         
         asset_breakdown = self._get_asset_breakdown(assets_by_category, total_assets)
         liability_breakdown = self._get_liability_breakdown(liabilities_by_category, total_liabilities)

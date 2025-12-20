@@ -11,10 +11,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Pressable, RefreshControl } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
-import { Button, Card } from '../../src/shared/components';
+import { Button, Card } from '../../src/shared/components/index';
 import { useNetWorthStore } from '../../src/features/netWorth/store';
-import { useAuthStore } from '@/features/auth/store';
-import { formatCurrency } from '../../src/shared/utils';
+import { useAuthStore } from '../../src/features/auth/store';
+import { formatCurrency } from '../../src/shared/utils/index';
 
 export default function DashboardScreen() {
   const router = useRouter();

@@ -18,6 +18,7 @@ class ApiClientClass {
   private baseUrl: string;
   private timeout: number;
   private headers: Record<string, string>;
+  private authToken: string | null = null;
 
   constructor() {
     this.baseUrl = API_CONFIG.baseUrl;
@@ -30,6 +31,31 @@ class ApiClientClass {
    */
   setBaseUrl(url: string): void {
     this.baseUrl = url;
+  }
+
+  /**
+   * Set the authentication token for API requests.
+   */
+  setAuthToken(token: string): void {
+    this.authToken = token;
+  }
+
+  /**
+   * Clear the authentication token.
+   */
+  clearAuthToken(): void {
+    this.authToken = null;
+  }
+
+  /**
+   * Get headers with auth token if available.
+   */
+  private getHeaders(): Record<string, string> {
+    const headers = { ...this.headers };
+    if (this.authToken) {
+      headers['Authorization'] = `Bearer ${this.authToken}`;
+    }
+    return headers;
   }
 
   /**
@@ -52,19 +78,40 @@ class ApiClientClass {
     });
 
     try {
+      // Ensure URL uses HTTPS and has proper format
+      let finalUrl = url;
+      if (finalUrl.startsWith('http://') && finalUrl.includes('railway.app')) {
+        // Force HTTPS for Railway URLs to avoid redirect issues
+        finalUrl = finalUrl.replace('http://', 'https://');
+      }
+      
       const options: RequestInit = {
         method,
-        headers: this.headers,
+        headers: this.getHeaders(),
         signal: controller.signal,
+        redirect: 'follow', // Follow redirects (but preflight can't follow)
       };
 
       if (data && (method === 'POST' || method === 'PUT')) {
         options.body = JSON.stringify(data);
       }
 
-      const fetchPromise = fetch(url, options).then(async (response) => {
+      const fetchPromise = fetch(finalUrl, options).then(async (response) => {
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
+          // Try to parse error response, but handle empty/non-JSON gracefully
+          let errorData = {};
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            try {
+              const text = await response.text();
+              if (text) {
+                errorData = JSON.parse(text);
+              }
+            } catch {
+              // If parsing fails, use empty object
+            }
+          }
+          
           const error: ApiError = {
             detail: errorData.detail || `Request failed with status ${response.status}`,
             status: response.status,
@@ -77,7 +124,21 @@ class ApiClientClass {
           return null as T;
         }
 
-        return response.json();
+        // Check if response has content before parsing
+        const contentType = response.headers.get('content-type');
+        const text = await response.text();
+        
+        // If no content or not JSON, return null
+        if (!text || !contentType?.includes('application/json')) {
+          return null as T;
+        }
+
+        try {
+          return JSON.parse(text);
+        } catch (parseError) {
+          console.error('[API Client] JSON parse error:', parseError, 'Response text:', text);
+          throw { detail: 'Invalid response from server', status: response.status };
+        }
       });
 
       return await Promise.race([fetchPromise, timeoutPromise]);

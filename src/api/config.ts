@@ -9,6 +9,7 @@
 const LOCAL_API_URL = 'http://localhost:8000/api/v1';
 
 // For production (Railway)
+// Always use HTTPS to avoid redirect issues
 const PRODUCTION_API_URL = 'https://you-can-fi-production.up.railway.app/api/v1';
 
 // Use Railway server for all environments (local backend not needed)

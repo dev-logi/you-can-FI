@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.auth import get_current_user
 from app.repositories.asset_repository import asset_repository
 from app.schemas.asset import AssetCreate, AssetUpdate, AssetResponse
 
@@ -16,21 +17,35 @@ router = APIRouter()
 
 
 @router.post("/", response_model=AssetResponse, status_code=status.HTTP_201_CREATED)
-def create_asset(asset: AssetCreate, db: Session = Depends(get_db)):
+def create_asset(
+    asset: AssetCreate,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
+):
     """Create a new asset."""
-    return asset_repository.create(db, asset.model_dump())
+    return asset_repository.create(db, asset.model_dump(), user_id)
 
 
 @router.get("/", response_model=List[AssetResponse])
-def list_assets(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    """Get all assets."""
-    return asset_repository.get_all(db, skip=skip, limit=limit)
+def list_assets(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
+):
+    """Get all assets for the current user."""
+    assets = asset_repository.get_all(db, user_id)
+    return assets[skip:skip + limit]
 
 
 @router.get("/{asset_id}", response_model=AssetResponse)
-def get_asset(asset_id: str, db: Session = Depends(get_db)):
+def get_asset(
+    asset_id: str,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
+):
     """Get an asset by ID."""
-    asset = asset_repository.get(db, asset_id)
+    asset = asset_repository.get(db, asset_id, user_id)
     if not asset:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -40,7 +55,12 @@ def get_asset(asset_id: str, db: Session = Depends(get_db)):
 
 
 @router.put("/{asset_id}", response_model=AssetResponse)
-def update_asset(asset_id: str, asset: AssetUpdate, db: Session = Depends(get_db)):
+def update_asset(
+    asset_id: str,
+    asset: AssetUpdate,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
+):
     """Update an asset."""
     # Filter out None values
     update_data = {k: v for k, v in asset.model_dump().items() if v is not None}
@@ -51,7 +71,7 @@ def update_asset(asset_id: str, asset: AssetUpdate, db: Session = Depends(get_db
             detail="No valid update data provided"
         )
     
-    updated = asset_repository.update(db, asset_id, update_data)
+    updated = asset_repository.update(db, asset_id, update_data, user_id)
     if not updated:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -61,9 +81,13 @@ def update_asset(asset_id: str, asset: AssetUpdate, db: Session = Depends(get_db
 
 
 @router.delete("/{asset_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_asset(asset_id: str, db: Session = Depends(get_db)):
+def delete_asset(
+    asset_id: str,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
+):
     """Delete an asset."""
-    deleted = asset_repository.delete(db, asset_id)
+    deleted = asset_repository.delete(db, asset_id, user_id)
     if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -73,7 +97,11 @@ def delete_asset(asset_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/category/{category}", response_model=List[AssetResponse])
-def get_assets_by_category(category: str, db: Session = Depends(get_db)):
-    """Get all assets in a category."""
-    return asset_repository.get_by_category(db, category)
+def get_assets_by_category(
+    category: str,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
+):
+    """Get all assets in a category for the current user."""
+    return asset_repository.get_by_category(db, category, user_id)
 

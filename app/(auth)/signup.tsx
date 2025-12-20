@@ -48,10 +48,14 @@ export default function SignUpScreen() {
     if (signUpError) {
       setLocalError(signUpError.message);
     } else {
-      // Get the session immediately after signup and set API client token
+      // Wait a moment for the session to be set in the store, then get it and set API client token
+      await new Promise(resolve => setTimeout(resolve, 100));
       const authState = useAuthStore.getState();
       if (authState.session?.access_token) {
         ApiClient.setAuthToken(authState.session.access_token);
+        console.log('[SignUp] API client token set successfully');
+      } else {
+        console.warn('[SignUp] No session available after signup');
       }
       
       // Navigation will be handled by root layout when auth state changes

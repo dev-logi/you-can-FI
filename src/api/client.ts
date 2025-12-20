@@ -21,7 +21,12 @@ class ApiClientClass {
   private authToken: string | null = null;
 
   constructor() {
-    this.baseUrl = API_CONFIG.baseUrl;
+    // Ensure baseUrl uses HTTPS for production (non-localhost) URLs
+    let baseUrl = API_CONFIG.baseUrl;
+    if (baseUrl.startsWith('http://') && !baseUrl.includes('localhost')) {
+      baseUrl = baseUrl.replace('http://', 'https://');
+    }
+    this.baseUrl = baseUrl;
     this.timeout = API_CONFIG.timeout;
     this.headers = API_CONFIG.headers;
   }
@@ -30,7 +35,12 @@ class ApiClientClass {
    * Update the base URL (e.g., when switching environments).
    */
   setBaseUrl(url: string): void {
-    this.baseUrl = url;
+    // Ensure URL uses HTTPS for production (non-localhost) URLs
+    let finalUrl = url;
+    if (finalUrl.startsWith('http://') && !finalUrl.includes('localhost')) {
+      finalUrl = finalUrl.replace('http://', 'https://');
+    }
+    this.baseUrl = finalUrl;
   }
 
   /**
@@ -80,9 +90,12 @@ class ApiClientClass {
     try {
       // Ensure URL uses HTTPS and has proper format
       let finalUrl = url;
-      if (finalUrl.startsWith('http://') && finalUrl.includes('railway.app')) {
-        // Force HTTPS for Railway URLs to avoid redirect issues
-        finalUrl = finalUrl.replace('http://', 'https://');
+      // Force HTTPS for any Railway URLs or production URLs to avoid Mixed Content errors
+      if (finalUrl.startsWith('http://')) {
+        if (finalUrl.includes('railway.app') || finalUrl.includes('localhost') === false) {
+          // Force HTTPS for Railway URLs and any non-localhost URLs
+          finalUrl = finalUrl.replace('http://', 'https://');
+        }
       }
       
       const options: RequestInit = {
@@ -112,17 +125,17 @@ class ApiClientClass {
             }
           }
           
-          const error: ApiError = {
-            detail: errorData.detail || `Request failed with status ${response.status}`,
-            status: response.status,
-          };
-          throw error;
-        }
+        const error: ApiError = {
+          detail: errorData.detail || `Request failed with status ${response.status}`,
+          status: response.status,
+        };
+        throw error;
+      }
 
-        // Handle 204 No Content
-        if (response.status === 204) {
-          return null as T;
-        }
+      // Handle 204 No Content
+      if (response.status === 204) {
+        return null as T;
+      }
 
         // Check if response has content before parsing
         const contentType = response.headers.get('content-type');

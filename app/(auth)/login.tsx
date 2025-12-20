@@ -13,6 +13,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Button, Input, Card } from '@/shared/components';
 import { useAuthStore } from '@/features/auth/store';
+import { ApiClient } from '@/api/client';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -36,6 +37,12 @@ export default function LoginScreen() {
     if (signInError) {
       setLocalError(signInError.message);
     } else {
+      // Get the session immediately after signin and set API client token
+      const authState = useAuthStore.getState();
+      if (authState.session?.access_token) {
+        ApiClient.setAuthToken(authState.session.access_token);
+      }
+      
       // Navigation will be handled by root layout when auth state changes
       router.replace('/(onboarding)');
     }

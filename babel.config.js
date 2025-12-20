@@ -4,13 +4,6 @@ module.exports = function (api) {
     presets: ['babel-preset-expo'],
     plugins: [
       [
-        '@tamagui/babel-plugin',
-        {
-          components: ['tamagui'],
-          config: './tamagui.config.ts',
-        },
-      ],
-      [
         'module-resolver',
         {
           root: ['./'],
@@ -21,6 +14,13 @@ module.exports = function (api) {
             '@/shared': './src/shared',
           },
           extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
+        },
+      ],
+      [
+        '@tamagui/babel-plugin',
+        {
+          components: ['tamagui'],
+          config: './tamagui.config.ts',
         },
       ],
       'react-native-reanimated/plugin',

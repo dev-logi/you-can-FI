@@ -189,60 +189,67 @@ export default function LiabilitiesScreen() {
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={{ flex: 1 }}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 20}
         >
           <YStack
             flex={1}
             backgroundColor="rgba(0,0,0,0.5)"
             justifyContent="flex-end"
           >
-            <YStack
-              backgroundColor="#ffffff"
-              borderTopLeftRadius={24}
-              borderTopRightRadius={24}
-              padding={24}
-              paddingBottom={40}
-              gap={20}
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingBottom: 100 }}
+              showsVerticalScrollIndicator={false}
             >
-              <XStack justifyContent="space-between" alignItems="center">
-                <Text fontSize={20} fontWeight="700" color="#2d3436">
-                  Edit Liability
-                </Text>
-                <Pressable onPress={() => setEditingLiability(null)}>
-                  <Text fontSize={24} color="#636e72">×</Text>
-                </Pressable>
-              </XStack>
-
-              <Input
-                label="Name"
-                value={editName}
-                onChangeText={setEditName}
-              />
-
-              <CurrencyInput
-                label="Balance"
-                value={editBalance}
-                onChangeValue={setEditBalance}
-              />
-
-              <Input
-                label="Interest Rate (%)"
-                value={editInterestRate}
-                onChangeText={setEditInterestRate}
-                keyboardType="decimal-pad"
-                placeholder="e.g., 6.5"
-                helperText="Optional"
-              />
-
-              <Button
-                variant="primary"
-                fullWidth
-                onPress={handleSave}
-                loading={isLoading}
-                disabled={!editName || editBalance <= 0}
+              <YStack
+                backgroundColor="#ffffff"
+                borderTopLeftRadius={24}
+                borderTopRightRadius={24}
+                padding={24}
+                paddingBottom={40}
+                gap={20}
               >
-                Save Changes
-              </Button>
-            </YStack>
+                <XStack justifyContent="space-between" alignItems="center">
+                  <Text fontSize={20} fontWeight="700" color="#2d3436">
+                    Edit Liability
+                  </Text>
+                  <Pressable onPress={() => setEditingLiability(null)}>
+                    <Text fontSize={24} color="#636e72">×</Text>
+                  </Pressable>
+                </XStack>
+
+                <Input
+                  label="Name"
+                  value={editName}
+                  onChangeText={setEditName}
+                />
+
+                <CurrencyInput
+                  label="Balance"
+                  value={editBalance}
+                  onChangeValue={setEditBalance}
+                />
+
+                <Input
+                  label="Interest Rate (%)"
+                  value={editInterestRate}
+                  onChangeText={setEditInterestRate}
+                  keyboardType="decimal-pad"
+                  placeholder="e.g., 6.5"
+                  helperText="Optional"
+                />
+
+                <Button
+                  variant="primary"
+                  fullWidth
+                  onPress={handleSave}
+                  loading={isLoading}
+                  disabled={!editName || editBalance <= 0}
+                >
+                  Save Changes
+                </Button>
+              </YStack>
+            </ScrollView>
           </YStack>
         </KeyboardAvoidingView>
       </Modal>

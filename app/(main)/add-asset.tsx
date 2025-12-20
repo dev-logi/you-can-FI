@@ -83,30 +83,28 @@ export default function AddAssetScreen() {
           <XStack
             padding={24}
             paddingBottom={16}
-            justifyContent="space-between"
             alignItems="center"
             borderBottomWidth={1}
             borderBottomColor="#e0ddd8"
-            position="relative"
+            minHeight={56}
           >
-            <Pressable onPress={() => router.back()}>
+            <Pressable onPress={() => router.back()} style={{ minWidth: 60 }}>
               <Text fontSize={16} color="#636e72">
                 Cancel
               </Text>
             </Pressable>
-            <Text 
-              fontSize={18} 
-              fontWeight="700" 
-              color="#2d3436" 
-              position="absolute"
-              left={0}
-              right={0}
-              textAlign="center"
-              pointerEvents="none"
-            >
-              Add Asset
-            </Text>
-            <YStack width={60} />
+            <XStack flex={1} justifyContent="center" alignItems="center">
+              <Text 
+                fontSize={18} 
+                fontWeight="700" 
+                color="#2d3436"
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                Add Asset
+              </Text>
+            </XStack>
+            <XStack width={60} />
           </XStack>
 
           {step === 'category' ? (

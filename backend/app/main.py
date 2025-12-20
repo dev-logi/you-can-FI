@@ -28,6 +28,7 @@ async def lifespan(app: FastAPI):
 
 
 # Create FastAPI app
+# Disable automatic redirect for trailing slashes to prevent HTTP redirects
 app = FastAPI(
     title=settings.project_name,
     description="Personal finance tracking API for the You Can FI mobile app",
@@ -35,6 +36,7 @@ app = FastAPI(
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",
+    redirect_slashes=False,  # Prevent automatic redirects that might use HTTP
 )
 
 # Configure CORS

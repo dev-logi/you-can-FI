@@ -90,12 +90,24 @@ class ApiClientClass {
     try {
       // Ensure URL uses HTTPS and has proper format
       let finalUrl = url;
+      
+      // Log URL construction for debugging
+      if (finalUrl.includes('onboarding')) {
+        console.log('[API Client] Original URL:', finalUrl);
+      }
+      
       // Force HTTPS for any Railway URLs or production URLs to avoid Mixed Content errors
       if (finalUrl.startsWith('http://')) {
         if (finalUrl.includes('railway.app') || finalUrl.includes('localhost') === false) {
           // Force HTTPS for Railway URLs and any non-localhost URLs
+          const before = finalUrl;
           finalUrl = finalUrl.replace('http://', 'https://');
+          console.warn('[API Client] Converted HTTP to HTTPS:', before, '→', finalUrl);
         }
+      }
+      
+      if (finalUrl.includes('onboarding')) {
+        console.log('[API Client] Final URL:', finalUrl);
       }
       
       const options: RequestInit = {

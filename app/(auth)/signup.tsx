@@ -48,14 +48,22 @@ export default function SignUpScreen() {
     if (signUpError) {
       setLocalError(signUpError.message);
     } else {
-      // Wait a moment for the session to be set in the store, then get it and set API client token
-      await new Promise(resolve => setTimeout(resolve, 100));
-      const authState = useAuthStore.getState();
-      if (authState.session?.access_token) {
-        ApiClient.setAuthToken(authState.session.access_token);
-        console.log('[SignUp] API client token set successfully');
-      } else {
-        console.warn('[SignUp] No session available after signup');
+      // Wait for session to be available (Supabase might need a moment to set it)
+      // Try multiple times with increasing delays
+      let sessionAvailable = false;
+      for (let i = 0; i < 10; i++) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        const authState = useAuthStore.getState();
+        if (authState.session?.access_token) {
+          ApiClient.setAuthToken(authState.session.access_token);
+          console.log('[SignUp] API client token set successfully');
+          sessionAvailable = true;
+          break;
+        }
+      }
+      
+      if (!sessionAvailable) {
+        console.warn('[SignUp] No session available after signup - will be set by auth state listener');
       }
       
       // Navigation will be handled by root layout when auth state changes

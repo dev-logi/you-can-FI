@@ -8,11 +8,23 @@ const DIST_DIR = path.join(__dirname, 'dist');
 // Verify dist directory exists
 if (!fs.existsSync(DIST_DIR)) {
   console.error(`ERROR: dist directory does not exist at ${DIST_DIR}`);
+  console.error(`Current working directory: ${process.cwd()}`);
+  console.error(`__dirname: ${__dirname}`);
+  console.error(`Contents of __dirname: ${fs.readdirSync(__dirname).join(', ')}`);
+  process.exit(1);
+}
+
+// Verify index.html exists
+const indexPath = path.join(DIST_DIR, 'index.html');
+if (!fs.existsSync(indexPath)) {
+  console.error(`ERROR: index.html does not exist at ${indexPath}`);
+  console.error(`Contents of dist directory: ${fs.readdirSync(DIST_DIR).join(', ')}`);
   process.exit(1);
 }
 
 console.log(`Starting server on port ${PORT}`);
 console.log(`Serving files from ${DIST_DIR}`);
+console.log(`index.html exists: ${fs.existsSync(indexPath)}`);
 
 // MIME types
 const mimeTypes = {

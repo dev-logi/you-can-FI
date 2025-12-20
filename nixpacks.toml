@@ -12,5 +12,5 @@ cmds = [
 ]
 
 [start]
-cmd = "npx serve dist -p $PORT"
+cmd = "npx serve dist -l tcp://0.0.0.0:$PORT"
 

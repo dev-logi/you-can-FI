@@ -36,6 +36,7 @@ class StatusResponse(BaseModel):
     is_complete: bool
 
 
+@router.get("", response_model=OnboardingStateResponse)
 @router.get("/", response_model=OnboardingStateResponse)
 def get_or_create_onboarding(
     db: Session = Depends(get_db),

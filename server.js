@@ -5,6 +5,15 @@ const path = require('path');
 const PORT = process.env.PORT || 3000;
 const DIST_DIR = path.join(__dirname, 'dist');
 
+// Log port information for debugging
+console.log('='.repeat(50));
+console.log('SERVER STARTUP INFORMATION');
+console.log('='.repeat(50));
+console.log(`PORT environment variable: ${process.env.PORT || 'NOT SET (using default 3000)'}`);
+console.log(`Server will listen on port: ${PORT}`);
+console.log(`Server will bind to: 0.0.0.0`);
+console.log('='.repeat(50));
+
 // Verify dist directory exists
 if (!fs.existsSync(DIST_DIR)) {
   console.error(`ERROR: dist directory does not exist at ${DIST_DIR}`);
@@ -103,13 +112,17 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Server successfully started and listening on http://0.0.0.0:${PORT}/`);
-  console.log(`✅ Server is ready to accept connections`);
-  console.log(`✅ Healthcheck available at http://0.0.0.0:${PORT}/health`);
-  
-  // Verify server is actually listening
   const address = server.address();
+  console.log('='.repeat(50));
+  console.log('✅ SERVER SUCCESSFULLY STARTED');
+  console.log('='.repeat(50));
+  console.log(`✅ Listening on: http://0.0.0.0:${PORT}/`);
   console.log(`✅ Server address: ${JSON.stringify(address)}`);
+  console.log(`✅ Healthcheck: http://0.0.0.0:${PORT}/health`);
+  console.log(`✅ IMPORTANT: Railway domain target port must be set to: ${PORT}`);
+  console.log('='.repeat(50));
+  console.log('Server is ready to accept connections from Railway proxy');
+  console.log('='.repeat(50));
 });
 
 // Handle errors

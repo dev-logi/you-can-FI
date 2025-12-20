@@ -32,6 +32,8 @@ const mimeTypes = {
 };
 
 const server = http.createServer((req, res) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  
   let filePath = path.join(DIST_DIR, req.url === '/' ? 'index.html' : req.url);
   
   // Remove query string

@@ -11,7 +11,7 @@ import { YStack, Text, XStack } from 'tamagui';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
-import { Button } from '../../src/shared/components/index';
+import { Button } from '../../src/shared/components';
 import { useOnboardingStore } from '../../src/features/onboarding/store';
 import { QUESTION_IDS } from '../../src/features/onboarding/engine';
 

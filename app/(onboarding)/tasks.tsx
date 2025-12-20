@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Pressable, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { Button, Card, ProgressBar, Input, CurrencyInput } from '../../src/shared/components/index';
+import { Button, Card, ProgressBar, Input, CurrencyInput } from '../../src/shared/components';
 import { useOnboardingStore } from '../../src/features/onboarding/store';
 import { DataEntryTask, AssetCategory, LiabilityCategory } from '../../src/shared/types';
 import { ASSET_CATEGORY_CONFIG, LIABILITY_CATEGORY_CONFIG } from '../../src/features/netWorth/service';

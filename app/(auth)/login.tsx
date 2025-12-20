@@ -11,7 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Pressable, KeyboardAvoidingView, Platform } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { Button, Input, Card } from '../../../src/shared/components/index';
+import { Button, Input, Card } from '../../../src/shared/components';
 import { useAuthStore } from '../../../src/features/auth/store';
 
 export default function LoginScreen() {

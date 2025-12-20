@@ -10,7 +10,7 @@ import { YStack, Text } from 'tamagui';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { Button, ProgressBar, OptionButton } from '../../src/shared/components/index';
+import { Button, ProgressBar, OptionButton } from '../../src/shared/components';
 import { useOnboardingStore } from '../../src/features/onboarding/store';
 import { QUESTION_IDS, QUESTIONS } from '../../src/features/onboarding/engine';
 import { HouseholdType } from '../../src/shared/types';

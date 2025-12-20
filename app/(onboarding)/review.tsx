@@ -10,7 +10,7 @@ import { YStack, XStack, Text, ScrollView } from 'tamagui';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
-import { Button, Card, ProgressBar } from '../../src/shared/components/index';
+import { Button, Card, ProgressBar } from '../../src/shared/components';
 import { useOnboardingStore } from '../../src/features/onboarding/store';
 import { NetWorthApiService } from '../../src/api/services/netWorthService';
 import { NetWorthSummary, CategoryBreakdown } from '../../src/shared/types';

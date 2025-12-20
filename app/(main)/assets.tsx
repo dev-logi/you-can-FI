@@ -11,7 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Pressable, Alert, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { Button, Card, Input, CurrencyInput } from '../../src/shared/components/index';
+import { Button, Card, Input, CurrencyInput } from '../../src/shared/components';
 import { useNetWorthStore } from '../../src/features/netWorth/store';
 import { getAssetCategoryLabel } from '../../src/features/netWorth/service';
 import { Asset, AssetCategory } from '../../src/shared/types';

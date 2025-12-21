@@ -116,10 +116,21 @@ export default function RootLayout() {
     const inOnboarding = segments[0] === '(onboarding)';
     const inMain = segments[0] === '(main)';
     // Check if at root - segments will be empty array or just contain 'index'
-    const atRoot = segments.length === 0 || (segments.length === 1 && segments[0] === 'index') || window.location.pathname === '/';
+    const atRoot = segments.length === 0 || (segments.length === 1 && segments[0] === 'index') || (typeof window !== 'undefined' && window.location.pathname === '/');
+
+    console.log('[Navigation] Checking navigation:', {
+      user: !!user,
+      isOnboardingComplete,
+      segments,
+      inAuth,
+      inOnboarding,
+      inMain,
+      atRoot,
+    });
 
     // If not authenticated, go to auth
     if (!user && !inAuth) {
+      console.log('[Navigation] Not authenticated, redirecting to login');
       router.replace('/(auth)/login');
       return;
     }
@@ -127,9 +138,11 @@ export default function RootLayout() {
     // If authenticated, handle onboarding/main navigation
     if (user) {
       if (isOnboardingComplete && (inOnboarding || atRoot)) {
+        console.log('[Navigation] Onboarding complete, redirecting to main');
         router.replace('/(main)');
         return;
       } else if (!isOnboardingComplete && (inMain || atRoot)) {
+        console.log('[Navigation] Onboarding not complete, redirecting to onboarding');
         router.replace('/(onboarding)');
         return;
       }

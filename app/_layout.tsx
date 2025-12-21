@@ -116,7 +116,10 @@ export default function RootLayout() {
     const inOnboarding = segments[0] === '(onboarding)';
     const inMain = segments[0] === '(main)';
     // Check if at root - segments will be empty array or just contain 'index'
-    const atRoot = segments.length === 0 || (segments.length === 1 && segments[0] === 'index') || (typeof window !== 'undefined' && window.location.pathname === '/');
+    // Also check if pathname is '/' (for web)
+    const atRoot = segments.length === 0 || 
+                   (segments.length === 1 && segments[0] === 'index') || 
+                   (typeof window !== 'undefined' && window.location.pathname === '/');
 
     console.log('[Navigation] Checking navigation:', {
       user: !!user,
@@ -126,9 +129,10 @@ export default function RootLayout() {
       inOnboarding,
       inMain,
       atRoot,
+      pathname: typeof window !== 'undefined' ? window.location.pathname : 'N/A',
     });
 
-    // If not authenticated, go to auth
+    // If not authenticated, go to auth (unless already in auth)
     if (!user && !inAuth) {
       console.log('[Navigation] Not authenticated, redirecting to login');
       router.replace('/(auth)/login');
@@ -137,11 +141,27 @@ export default function RootLayout() {
 
     // If authenticated, handle onboarding/main navigation
     if (user) {
+      // If authenticated user is in auth section, redirect them away
+      if (inAuth) {
+        if (isOnboardingComplete) {
+          console.log('[Navigation] Authenticated user in auth, redirecting to main');
+          router.replace('/(main)');
+        } else {
+          console.log('[Navigation] Authenticated user in auth, redirecting to onboarding');
+          router.replace('/(onboarding)');
+        }
+        return;
+      }
+
+      // If onboarding complete, ensure we're in main section
       if (isOnboardingComplete && (inOnboarding || atRoot)) {
         console.log('[Navigation] Onboarding complete, redirecting to main');
         router.replace('/(main)');
         return;
-      } else if (!isOnboardingComplete && (inMain || atRoot)) {
+      }
+
+      // If onboarding not complete, ensure we're in onboarding section
+      if (!isOnboardingComplete && (inMain || atRoot)) {
         console.log('[Navigation] Onboarding not complete, redirecting to onboarding');
         router.replace('/(onboarding)');
         return;

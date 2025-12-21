@@ -153,17 +153,23 @@ export default function RootLayout() {
         return;
       }
 
-      // If onboarding complete, ensure we're in main section
+      // If onboarding complete, ensure we're in main section (not in onboarding or at root)
       if (isOnboardingComplete && (inOnboarding || atRoot)) {
         console.log('[Navigation] Onboarding complete, redirecting to main');
         router.replace('/(main)');
         return;
       }
 
-      // If onboarding not complete, ensure we're in onboarding section
+      // If onboarding not complete, ensure we're in onboarding section (not in main or at root)
       if (!isOnboardingComplete && (inMain || atRoot)) {
         console.log('[Navigation] Onboarding not complete, redirecting to onboarding');
         router.replace('/(onboarding)');
+        return;
+      }
+
+      // If already in correct section, do nothing
+      if ((isOnboardingComplete && inMain) || (!isOnboardingComplete && inOnboarding)) {
+        console.log('[Navigation] Already in correct section, no redirect needed');
         return;
       }
     }

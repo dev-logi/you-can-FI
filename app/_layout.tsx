@@ -27,8 +27,6 @@ export default function RootLayout() {
   const [apiError, setApiError] = useState<string | null>(null);
   const router = useRouter();
   const segments = useSegments();
-  const hasNavigated = useRef(false);
-  const initialCheckDone = useRef(false);
 
   // Auth state
   const { user, session, isInitialized, initialize } = useAuthStore();
@@ -138,6 +136,9 @@ export default function RootLayout() {
   // Handle navigation based on auth and onboarding status
   useEffect(() => {
     if (!isReady) return;
+    
+    // Guard against router not being ready
+    if (!router || !segments) return;
 
     const inAuth = segments[0] === '(auth)';
     const inOnboarding = segments[0] === '(onboarding)';
@@ -162,7 +163,11 @@ export default function RootLayout() {
     // If not authenticated, go to auth (unless already in auth)
     if (!user && !inAuth) {
       console.log('[Navigation] Not authenticated, redirecting to login');
-      router.replace('/(auth)/login');
+      try {
+        router.replace('/(auth)/login');
+      } catch (error) {
+        console.error('[Navigation] Error redirecting to login:', error);
+      }
       return;
     }
 
@@ -172,10 +177,18 @@ export default function RootLayout() {
       if (inAuth) {
         if (isOnboardingComplete) {
           console.log('[Navigation] Authenticated user in auth, redirecting to main');
-          router.replace('/(main)');
+          try {
+            router.replace('/(main)');
+          } catch (error) {
+            console.error('[Navigation] Error redirecting to main:', error);
+          }
         } else {
           console.log('[Navigation] Authenticated user in auth, redirecting to onboarding');
-          router.replace('/(onboarding)');
+          try {
+            router.replace('/(onboarding)');
+          } catch (error) {
+            console.error('[Navigation] Error redirecting to onboarding:', error);
+          }
         }
         return;
       }
@@ -189,14 +202,22 @@ export default function RootLayout() {
       // If onboarding complete, ensure we're in main section (not in onboarding or at root)
       if (isOnboardingComplete && (inOnboarding || atRoot)) {
         console.log('[Navigation] Onboarding complete, redirecting to main');
-        router.replace('/(main)');
+        try {
+          router.replace('/(main)');
+        } catch (error) {
+          console.error('[Navigation] Error redirecting to main:', error);
+        }
         return;
       }
 
       // If onboarding not complete, ensure we're in onboarding section (not in main or at root)
       if (!isOnboardingComplete && (inMain || atRoot)) {
         console.log('[Navigation] Onboarding not complete, redirecting to onboarding');
-        router.replace('/(onboarding)');
+        try {
+          router.replace('/(onboarding)');
+        } catch (error) {
+          console.error('[Navigation] Error redirecting to onboarding:', error);
+        }
         return;
       }
     }

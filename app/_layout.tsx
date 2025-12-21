@@ -108,6 +108,33 @@ export default function RootLayout() {
     }
   }, [session]);
 
+  // Refresh onboarding status when user is authenticated and segments change
+  // This ensures we check onboarding status after completing onboarding
+  useEffect(() => {
+    if (!isReady || !user) return;
+
+    const inMain = segments[0] === '(main)';
+    const inOnboarding = segments[0] === '(onboarding)';
+
+    // Refresh onboarding status when navigating to main section or when in onboarding
+    // This catches the case where onboarding was just completed
+    const refreshOnboardingStatus = async () => {
+      try {
+        const complete = await OnboardingApiService.isComplete();
+        console.log('[Navigation] Refreshed onboarding status:', complete);
+        setIsOnboardingComplete(complete);
+      } catch (error) {
+        console.error('[Navigation] Failed to refresh onboarding status:', error);
+      }
+    };
+
+    // Refresh when navigating to main (in case onboarding was just completed)
+    // or when in onboarding (to catch completion)
+    if (inMain || inOnboarding) {
+      refreshOnboardingStatus();
+    }
+  }, [isReady, user, segments]);
+
   // Handle navigation based on auth and onboarding status
   useEffect(() => {
     if (!isReady) return;

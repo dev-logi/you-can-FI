@@ -115,7 +115,8 @@ export default function RootLayout() {
     const inAuth = segments[0] === '(auth)';
     const inOnboarding = segments[0] === '(onboarding)';
     const inMain = segments[0] === '(main)';
-    const atRoot = segments.length === 0 || (segments.length === 1 && segments[0] === 'index');
+    // Check if at root - segments will be empty array or just contain 'index'
+    const atRoot = segments.length === 0 || (segments.length === 1 && segments[0] === 'index') || window.location.pathname === '/';
 
     // If not authenticated, go to auth
     if (!user && !inAuth) {
@@ -133,7 +134,7 @@ export default function RootLayout() {
         return;
       }
     }
-  }, [isReady, user, isOnboardingComplete, segments]);
+  }, [isReady, user, isOnboardingComplete, segments, router]);
 
   if (!fontsLoaded || !isReady) {
     return (

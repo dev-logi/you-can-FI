@@ -153,6 +153,12 @@ export default function RootLayout() {
         return;
       }
 
+      // If already in correct section, do nothing (check this first to avoid unnecessary redirects)
+      if ((isOnboardingComplete && inMain) || (!isOnboardingComplete && inOnboarding)) {
+        console.log('[Navigation] Already in correct section, no redirect needed');
+        return;
+      }
+
       // If onboarding complete, ensure we're in main section (not in onboarding or at root)
       if (isOnboardingComplete && (inOnboarding || atRoot)) {
         console.log('[Navigation] Onboarding complete, redirecting to main');
@@ -164,12 +170,6 @@ export default function RootLayout() {
       if (!isOnboardingComplete && (inMain || atRoot)) {
         console.log('[Navigation] Onboarding not complete, redirecting to onboarding');
         router.replace('/(onboarding)');
-        return;
-      }
-
-      // If already in correct section, do nothing
-      if ((isOnboardingComplete && inMain) || (!isOnboardingComplete && inOnboarding)) {
-        console.log('[Navigation] Already in correct section, no redirect needed');
         return;
       }
     }

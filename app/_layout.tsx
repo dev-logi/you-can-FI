@@ -115,37 +115,23 @@ export default function RootLayout() {
     const inAuth = segments[0] === '(auth)';
     const inOnboarding = segments[0] === '(onboarding)';
     const inMain = segments[0] === '(main)';
+    const atRoot = segments.length === 0 || (segments.length === 1 && segments[0] === 'index');
 
-    // If this is the initial check, always enforce correct navigation
-    if (!initialCheckDone.current) {
-      // If not authenticated, go to auth
-      if (!user && !inAuth) {
-        router.replace('/(auth)/login');
-        initialCheckDone.current = true;
+    // If not authenticated, go to auth
+    if (!user && !inAuth) {
+      router.replace('/(auth)/login');
+      return;
+    }
+
+    // If authenticated, handle onboarding/main navigation
+    if (user) {
+      if (isOnboardingComplete && (inOnboarding || atRoot)) {
+        router.replace('/(main)');
+        return;
+      } else if (!isOnboardingComplete && (inMain || atRoot)) {
+        router.replace('/(onboarding)');
         return;
       }
-
-      // If authenticated, handle onboarding/main navigation
-      if (user) {
-        if (isOnboardingComplete && inOnboarding) {
-          router.replace('/(main)');
-          initialCheckDone.current = true;
-          return;
-        } else if (!isOnboardingComplete && inMain) {
-          router.replace('/(onboarding)');
-          initialCheckDone.current = true;
-          return;
-        } else if (!isOnboardingComplete && !inOnboarding && !inMain && !inAuth) {
-          router.replace('/(onboarding)');
-          initialCheckDone.current = true;
-          return;
-        } else if (isOnboardingComplete && !inMain && !inOnboarding && !inAuth) {
-          router.replace('/(main)');
-          initialCheckDone.current = true;
-          return;
-        }
-      }
-      initialCheckDone.current = true;
     }
   }, [isReady, user, isOnboardingComplete, segments]);
 

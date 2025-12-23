@@ -25,17 +25,8 @@ export default function RootLayout() {
   const [isReady, setIsReady] = useState(false);
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
-  
-  // Router hooks - wrap in try-catch to prevent crashes if router not initialized
-  let router;
-  let segments;
-  try {
-    router = useRouter();
-    segments = useSegments();
-  } catch (error) {
-    console.error('[RootLayout] Error initializing router:', error);
-    // Router not ready yet - will retry when component re-renders
-  }
+  const router = useRouter();
+  const segments = useSegments();
 
   // Auth state
   const { user, session, isInitialized, initialize } = useAuthStore();

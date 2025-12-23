@@ -216,9 +216,24 @@ class ApiClientClass {
    */
   async healthCheck(): Promise<boolean> {
     try {
-      const response = await fetch(`${this.baseUrl.replace('/api/v1', '')}/health`);
+      // Use AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      
+      const healthUrl = `${this.baseUrl.replace('/api/v1', '')}/health`;
+      const response = await fetch(healthUrl, {
+        method: 'GET',
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      clearTimeout(timeoutId);
       return response.ok;
-    } catch {
+    } catch (error) {
+      // Silently fail - don't throw errors from health check
+      console.warn('[API Client] Health check failed:', error);
       return false;
     }
   }

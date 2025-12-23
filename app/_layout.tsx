@@ -25,8 +25,17 @@ export default function RootLayout() {
   const [isReady, setIsReady] = useState(false);
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
-  const router = useRouter();
-  const segments = useSegments();
+  
+  // Router hooks - wrap in try-catch to prevent crashes if router not initialized
+  let router;
+  let segments;
+  try {
+    router = useRouter();
+    segments = useSegments();
+  } catch (error) {
+    console.error('[RootLayout] Error initializing router:', error);
+    // Router not ready yet - will retry when component re-renders
+  }
 
   // Auth state
   const { user, session, isInitialized, initialize } = useAuthStore();
@@ -56,17 +65,28 @@ export default function RootLayout() {
 
         // Check if API is healthy (non-blocking for unauthenticated users)
         // Allow app to load even if API is down, so users can at least see login screen
-        const isHealthy = await ApiClient.healthCheck();
-        if (!isHealthy) {
-          // Only show error if user is authenticated (they need the API)
-          // For unauthenticated users, allow them to see login screen
+        try {
+          const isHealthy = await ApiClient.healthCheck();
+          if (!isHealthy) {
+            // Only show error if user is authenticated (they need the API)
+            // For unauthenticated users, allow them to see login screen
+            if (currentUser) {
+              setApiError('Cannot connect to server. Please check your connection.');
+              setIsReady(true);
+              return;
+            }
+            // For unauthenticated users, continue without API check
+            // They can still see login screen
+          }
+        } catch (healthError) {
+          // Silently fail health check - don't block app loading
+          console.warn('[RootLayout] Health check failed:', healthError);
+          // Only show error if user is authenticated
           if (currentUser) {
             setApiError('Cannot connect to server. Please check your connection.');
             setIsReady(true);
             return;
           }
-          // For unauthenticated users, continue without API check
-          // They can still see login screen
         }
 
         // Only check onboarding if user is authenticated
@@ -110,6 +130,11 @@ export default function RootLayout() {
   // This ensures we check onboarding status after completing onboarding
   useEffect(() => {
     if (!isReady || !user) return;
+    
+    // Guard against segments not being ready
+    if (!segments || !Array.isArray(segments)) {
+      return;
+    }
 
     const inMain = segments[0] === '(main)';
     const inOnboarding = segments[0] === '(onboarding)';
@@ -123,6 +148,7 @@ export default function RootLayout() {
         setIsOnboardingComplete(complete);
       } catch (error) {
         console.error('[Navigation] Failed to refresh onboarding status:', error);
+        // Don't throw - just log the error
       }
     };
 
@@ -138,7 +164,11 @@ export default function RootLayout() {
     if (!isReady) return;
     
     // Guard against router not being ready
-    if (!router || !segments) return;
+    // In production builds, router might not be initialized immediately
+    if (!router || !segments || !Array.isArray(segments)) {
+      console.warn('[Navigation] Router or segments not ready yet');
+      return;
+    }
 
     const inAuth = segments[0] === '(auth)';
     const inOnboarding = segments[0] === '(onboarding)';
@@ -164,9 +194,12 @@ export default function RootLayout() {
     if (!user && !inAuth) {
       console.log('[Navigation] Not authenticated, redirecting to login');
       try {
-        router.replace('/(auth)/login');
+        if (router && typeof router.replace === 'function') {
+          router.replace('/(auth)/login');
+        }
       } catch (error) {
         console.error('[Navigation] Error redirecting to login:', error);
+        // Don't throw - just log the error
       }
       return;
     }
@@ -178,16 +211,22 @@ export default function RootLayout() {
         if (isOnboardingComplete) {
           console.log('[Navigation] Authenticated user in auth, redirecting to main');
           try {
-            router.replace('/(main)');
+            if (router && typeof router.replace === 'function') {
+              router.replace('/(main)');
+            }
           } catch (error) {
             console.error('[Navigation] Error redirecting to main:', error);
+            // Don't throw - just log the error
           }
         } else {
           console.log('[Navigation] Authenticated user in auth, redirecting to onboarding');
           try {
-            router.replace('/(onboarding)');
+            if (router && typeof router.replace === 'function') {
+              router.replace('/(onboarding)');
+            }
           } catch (error) {
             console.error('[Navigation] Error redirecting to onboarding:', error);
+            // Don't throw - just log the error
           }
         }
         return;
@@ -203,9 +242,12 @@ export default function RootLayout() {
       if (isOnboardingComplete && (inOnboarding || atRoot)) {
         console.log('[Navigation] Onboarding complete, redirecting to main');
         try {
-          router.replace('/(main)');
+          if (router && typeof router.replace === 'function') {
+            router.replace('/(main)');
+          }
         } catch (error) {
           console.error('[Navigation] Error redirecting to main:', error);
+          // Don't throw - just log the error
         }
         return;
       }
@@ -214,9 +256,12 @@ export default function RootLayout() {
       if (!isOnboardingComplete && (inMain || atRoot)) {
         console.log('[Navigation] Onboarding not complete, redirecting to onboarding');
         try {
-          router.replace('/(onboarding)');
+          if (router && typeof router.replace === 'function') {
+            router.replace('/(onboarding)');
+          }
         } catch (error) {
           console.error('[Navigation] Error redirecting to onboarding:', error);
+          // Don't throw - just log the error
         }
         return;
       }

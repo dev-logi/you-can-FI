@@ -41,8 +41,15 @@ export default function RootLayout() {
   useEffect(() => {
     async function init() {
       try {
-        // Initialize auth first
-        await initialize();
+        // Initialize auth first - wrap in try-catch to prevent crashes
+        try {
+          await initialize();
+        } catch (authInitError) {
+          console.error('[RootLayout] Auth initialization failed:', authInitError);
+          // Continue anyway - user can still see login screen
+          setIsReady(true);
+          return;
+        }
 
         // Get the latest auth state after initialization
         const authState = useAuthStore.getState();

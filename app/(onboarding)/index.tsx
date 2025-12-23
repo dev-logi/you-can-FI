@@ -26,24 +26,20 @@ export default function WelcomeScreen() {
     router.push('/(onboarding)/household');
   };
 
-  // Calculate bottom padding: safe area inset + extra padding for button clearance
-  const bottomPadding = Math.max(insets.bottom, 16) + 24;
-
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#faf8f5' }} edges={['top']}>
-      <YStack flex={1} padding={24} paddingBottom={0}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#faf8f5' }}>
+      <YStack flex={1}>
         <ScrollView
           contentContainerStyle={{
             flexGrow: 1,
-            justifyContent: 'space-between',
+            padding: 24,
             paddingTop: 16,
-            paddingBottom: bottomPadding,
+            paddingBottom: 40,
           }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Content */}
-          <YStack alignItems="center" gap={32} flex={1} justifyContent="center">
+          <YStack flex={1} alignItems="center" gap={32} justifyContent="center">
             <Animated.View entering={FadeInDown.delay(200).springify()}>
               <YStack
                 width={100}
@@ -97,10 +93,18 @@ export default function WelcomeScreen() {
               </YStack>
             </Animated.View>
           </YStack>
+        </ScrollView>
 
-          {/* Footer */}
+        {/* Footer - Fixed at bottom with safe area */}
+        <YStack
+          padding={24}
+          paddingTop={16}
+          paddingBottom={Math.max(insets.bottom, 20) + 16}
+          backgroundColor="#faf8f5"
+          borderTopWidth={0}
+        >
           <Animated.View entering={FadeInUp.delay(800).springify()}>
-            <YStack gap={16} marginTop={32}>
+            <YStack gap={16}>
               <Button
                 variant="primary"
                 fullWidth
@@ -118,7 +122,7 @@ export default function WelcomeScreen() {
               </Text>
             </YStack>
           </Animated.View>
-        </ScrollView>
+        </YStack>
       </YStack>
     </SafeAreaView>
   );

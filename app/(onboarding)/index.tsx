@@ -9,7 +9,7 @@ import React from 'react';
 import { useRouter } from 'expo-router';
 import { ScrollView } from 'react-native';
 import { YStack, Text, XStack } from 'tamagui';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
 import { Button } from '../../src/shared/components';
@@ -19,20 +19,25 @@ import { QUESTION_IDS } from '../../src/features/onboarding/engine';
 export default function WelcomeScreen() {
   const router = useRouter();
   const { answerQuestion, isLoading } = useOnboardingStore();
+  const insets = useSafeAreaInsets();
 
   const handleContinue = async () => {
     await answerQuestion(QUESTION_IDS.WELCOME, 'continue');
     router.push('/(onboarding)/household');
   };
 
+  // Calculate bottom padding: safe area inset + extra padding for button clearance
+  const bottomPadding = Math.max(insets.bottom, 16) + 24;
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#faf8f5' }}>
-      <YStack flex={1} padding={24}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#faf8f5' }} edges={['top']}>
+      <YStack flex={1} padding={24} paddingBottom={0}>
         <ScrollView
           contentContainerStyle={{
             flexGrow: 1,
             justifyContent: 'space-between',
-            paddingVertical: 16,
+            paddingTop: 16,
+            paddingBottom: bottomPadding,
           }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"

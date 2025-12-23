@@ -180,10 +180,10 @@ export default function RootLayout() {
     const inOnboarding = segments[0] === '(onboarding)';
     const inMain = segments[0] === '(main)';
     // Check if at root - segments will be empty array or just contain 'index'
-    // Also check if pathname is '/' (for web)
+    // Also check if pathname is '/' (for web) - safely check window.location exists
     const atRoot = segments.length === 0 || 
                    (segments.length === 1 && segments[0] === 'index') || 
-                   (typeof window !== 'undefined' && window.location.pathname === '/');
+                   (typeof window !== 'undefined' && window.location && window.location.pathname === '/');
 
     console.log('[Navigation] Checking navigation:', {
       user: !!user,
@@ -193,7 +193,7 @@ export default function RootLayout() {
       inOnboarding,
       inMain,
       atRoot,
-      pathname: typeof window !== 'undefined' ? window.location.pathname : 'N/A',
+      pathname: typeof window !== 'undefined' && window.location ? window.location.pathname : 'N/A',
     });
 
     // If not authenticated, go to auth (unless already in auth)

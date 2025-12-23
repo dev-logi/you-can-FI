@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { useRouter } from 'expo-router';
+import { ScrollView } from 'react-native';
 import { YStack, Text, XStack } from 'tamagui';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
@@ -26,86 +27,93 @@ export default function WelcomeScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#faf8f5' }}>
-      <YStack flex={1} padding={24} justifyContent="space-between">
-        {/* Header */}
-        <YStack />
-
-        {/* Content */}
-        <YStack alignItems="center" gap={32}>
-          <Animated.View entering={FadeInDown.delay(200).springify()}>
-            <YStack
-              width={100}
-              height={100}
-              borderRadius={50}
-              backgroundColor="#1e3a5f"
-              alignItems="center"
-              justifyContent="center"
-            >
-              <Text fontSize={48}>💰</Text>
-            </YStack>
-          </Animated.View>
-
-          <Animated.View entering={FadeInDown.delay(400).springify()}>
-            <YStack gap={16} alignItems="center">
-              <Text
-                fontSize={32}
-                fontWeight="700"
-                color="#2d3436"
-                textAlign="center"
-                fontFamily="$heading"
+      <YStack flex={1} padding={24}>
+        <ScrollView
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: 'space-between',
+            paddingVertical: 16,
+          }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Content */}
+          <YStack alignItems="center" gap={32} flex={1} justifyContent="center">
+            <Animated.View entering={FadeInDown.delay(200).springify()}>
+              <YStack
+                width={100}
+                height={100}
+                borderRadius={50}
+                backgroundColor="#1e3a5f"
+                alignItems="center"
+                justifyContent="center"
               >
-                You Can FI
-              </Text>
-              <Text
-                fontSize={18}
-                color="#636e72"
-                textAlign="center"
-                lineHeight={26}
-                maxWidth={300}
-              >
-                Let's get a clear picture of your finances and track your path to financial independence.
-              </Text>
-            </YStack>
-          </Animated.View>
+                <Text fontSize={48}>💰</Text>
+              </YStack>
+            </Animated.View>
 
-          <Animated.View entering={FadeInUp.delay(600).springify()}>
-            <YStack gap={12} alignItems="center">
-              <XStack gap={8} alignItems="center">
-                <Text fontSize={14} color="#4a7c59">✓</Text>
-                <Text fontSize={14} color="#636e72">Track your net worth</Text>
-              </XStack>
-              <XStack gap={8} alignItems="center">
-                <Text fontSize={14} color="#4a7c59">✓</Text>
-                <Text fontSize={14} color="#636e72">Monitor assets & liabilities</Text>
-              </XStack>
-              <XStack gap={8} alignItems="center">
-                <Text fontSize={14} color="#4a7c59">✓</Text>
-                <Text fontSize={14} color="#636e72">Private & offline-first</Text>
-              </XStack>
-            </YStack>
-          </Animated.View>
-        </YStack>
+            <Animated.View entering={FadeInDown.delay(400).springify()}>
+              <YStack gap={16} alignItems="center" paddingHorizontal={8}>
+                <Text
+                  fontSize={32}
+                  fontWeight="700"
+                  color="#2d3436"
+                  textAlign="center"
+                  fontFamily="$heading"
+                >
+                  You Can FI
+                </Text>
+                <Text
+                  fontSize={18}
+                  color="#636e72"
+                  textAlign="center"
+                  lineHeight={26}
+                  maxWidth={300}
+                >
+                  Let's get a clear picture of your finances and track your path to financial independence.
+                </Text>
+              </YStack>
+            </Animated.View>
 
-        {/* Footer */}
-        <Animated.View entering={FadeInUp.delay(800).springify()}>
-          <YStack gap={16}>
-            <Button
-              variant="primary"
-              fullWidth
-              onPress={handleContinue}
-              loading={isLoading}
-            >
-              Get Started
-            </Button>
-            <Text
-              fontSize={12}
-              color="#a0a0a0"
-              textAlign="center"
-            >
-              Takes about 5 minutes
-            </Text>
+            <Animated.View entering={FadeInUp.delay(600).springify()}>
+              <YStack gap={12} alignItems="center">
+                <XStack gap={8} alignItems="center">
+                  <Text fontSize={14} color="#4a7c59">✓</Text>
+                  <Text fontSize={14} color="#636e72">Track your net worth</Text>
+                </XStack>
+                <XStack gap={8} alignItems="center">
+                  <Text fontSize={14} color="#4a7c59">✓</Text>
+                  <Text fontSize={14} color="#636e72">Monitor assets & liabilities</Text>
+                </XStack>
+                <XStack gap={8} alignItems="center">
+                  <Text fontSize={14} color="#4a7c59">✓</Text>
+                  <Text fontSize={14} color="#636e72">Private & offline-first</Text>
+                </XStack>
+              </YStack>
+            </Animated.View>
           </YStack>
-        </Animated.View>
+
+          {/* Footer */}
+          <Animated.View entering={FadeInUp.delay(800).springify()}>
+            <YStack gap={16} marginTop={32}>
+              <Button
+                variant="primary"
+                fullWidth
+                onPress={handleContinue}
+                loading={isLoading}
+              >
+                Get Started
+              </Button>
+              <Text
+                fontSize={12}
+                color="#a0a0a0"
+                textAlign="center"
+              >
+                Takes about 5 minutes
+              </Text>
+            </YStack>
+          </Animated.View>
+        </ScrollView>
       </YStack>
     </SafeAreaView>
   );

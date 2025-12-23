@@ -31,11 +31,19 @@ export default function RootLayout() {
   // Auth state
   const { user, session, isInitialized, initialize } = useAuthStore();
 
-  // Load fonts
-  const [fontsLoaded] = useFonts({
+  // Load fonts - wrap in error handling to prevent crashes
+  const [fontsLoaded, fontError] = useFonts({
     Inter: require('@tamagui/font-inter/otf/Inter-Medium.otf'),
     InterBold: require('@tamagui/font-inter/otf/Inter-Bold.otf'),
   });
+
+  // Log font loading errors but don't crash
+  useEffect(() => {
+    if (fontError) {
+      console.error('[RootLayout] Font loading error:', fontError);
+      // Don't throw - allow app to continue without custom fonts
+    }
+  }, [fontError]);
 
   // Initialize auth and check API/onboarding status
   useEffect(() => {
@@ -266,6 +274,7 @@ export default function RootLayout() {
     }
   }, [isReady, user, isOnboardingComplete, segments, router]);
 
+  // Allow app to load even if fonts fail - use system fonts as fallback
   if (!fontsLoaded || !isReady) {
     return (
       <TamaguiProvider config={config}>

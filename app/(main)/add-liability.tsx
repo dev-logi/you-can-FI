@@ -15,7 +15,7 @@ import { Button, Card, Input, CurrencyInput, OptionButton, CountInputModal, Mult
 import { useNetWorthStore } from '../../src/features/netWorth/store';
 import { LiabilityCategory } from '../../src/shared/types';
 import { getLiabilityCategoryLabel } from '../../src/features/netWorth/service';
-import { isLiabilityCategoryItemizable, getLiabilityItemizationLabel } from '../../src/shared/utils/itemization';
+import { isLiabilityCategoryItemizable, getLiabilityItemizationLabel, getLiabilityAdditionalItemizationLabel } from '../../src/shared/utils/itemization';
 
 // Types for multi-item form
 type AssetItemData = {
@@ -317,7 +317,9 @@ export default function AddLiabilityScreen() {
       {category && isLiabilityCategoryItemizable(category) && (
         <CountInputModal
           visible={showCountModal}
-          title={getLiabilityItemizationLabel(category)}
+          title={existingLiabilities.length > 0 
+            ? getLiabilityAdditionalItemizationLabel(category)
+            : getLiabilityItemizationLabel(category)}
           subtitle="You'll be able to enter details for each account separately"
           onClose={() => {
             setShowCountModal(false);

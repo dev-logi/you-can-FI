@@ -15,7 +15,7 @@ import { Button, Card, Input, CurrencyInput, OptionButton, CountInputModal, Mult
 import { useNetWorthStore } from '../../src/features/netWorth/store';
 import { AssetCategory } from '../../src/shared/types';
 import { ASSET_CATEGORY_CONFIG, getAssetCategoryLabel } from '../../src/features/netWorth/service';
-import { isAssetCategoryItemizable, getAssetItemizationLabel } from '../../src/shared/utils/itemization';
+import { isAssetCategoryItemizable, getAssetItemizationLabel, getAssetAdditionalItemizationLabel } from '../../src/shared/utils/itemization';
 
 const ASSET_CATEGORIES: Array<{ value: AssetCategory; label: string }> = [
   { value: 'cash', label: 'Cash & Checking' },
@@ -303,7 +303,9 @@ export default function AddAssetScreen() {
       {category && isAssetCategoryItemizable(category) && (
         <CountInputModal
           visible={showCountModal}
-          title={getAssetItemizationLabel(category)}
+          title={existingAssets.length > 0 
+            ? getAssetAdditionalItemizationLabel(category)
+            : getAssetItemizationLabel(category)}
           subtitle="You'll be able to enter details for each account separately"
           onClose={() => {
             setShowCountModal(false);

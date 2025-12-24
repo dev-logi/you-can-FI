@@ -11,7 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Pressable, KeyboardAvoidingView, Platform } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { Button, Card, Input, CurrencyInput, OptionButton, CountInputModal, MultiItemForm } from '../../src/shared/components';
+import { Button, Card, Input, CurrencyInput, OptionButton, CountInputModal, MultiItemForm, ExistingItemsView } from '../../src/shared/components';
 import { useNetWorthStore } from '../../src/features/netWorth/store';
 import { LiabilityCategory } from '../../src/shared/types';
 import { getLiabilityCategoryLabel } from '../../src/features/netWorth/service';
@@ -40,9 +40,9 @@ const LIABILITY_CATEGORIES: Array<{ value: LiabilityCategory; label: string }> =
 
 export default function AddLiabilityScreen() {
   const router = useRouter();
-  const { addLiability, isLoading, error } = useNetWorthStore();
+  const { addLiability, isLoading, error, liabilities } = useNetWorthStore();
 
-  const [step, setStep] = useState<'category' | 'count' | 'details'>('category');
+  const [step, setStep] = useState<'category' | 'existing' | 'count' | 'details'>('category');
   const [category, setCategory] = useState<LiabilityCategory | null>(null);
   const [count, setCount] = useState(1);
   const [showCountModal, setShowCountModal] = useState(false);
@@ -59,7 +59,15 @@ export default function AddLiabilityScreen() {
     
     // Check if category supports itemization
     if (isLiabilityCategoryItemizable(cat)) {
-      setShowCountModal(true);
+      // Check if there are existing items for this category
+      const existingItems = liabilities.filter(l => l.category === cat);
+      if (existingItems.length > 0) {
+        // Show existing items first
+        setStep('existing');
+      } else {
+        // No existing items, show count modal
+        setShowCountModal(true);
+      }
     } else {
       setStep('details');
     }
@@ -69,6 +77,11 @@ export default function AddLiabilityScreen() {
     setCount(selectedCount);
     setShowCountModal(false);
     setStep('details');
+  };
+
+  const handleAddMore = () => {
+    // Show count modal to add more items
+    setShowCountModal(true);
   };
 
   const handleMultiItemSave = async (items: any[]) => {
@@ -113,6 +126,7 @@ export default function AddLiabilityScreen() {
 
   const categoryLabel = category ? getLiabilityCategoryLabel(category) : '';
   const defaultName = category ? LIABILITY_CATEGORIES.find((c) => c.value === category)?.label ?? '' : '';
+  const existingLiabilities = category ? liabilities.filter(l => l.category === category) : [];
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }}>
@@ -172,6 +186,35 @@ export default function AddLiabilityScreen() {
                 </YStack>
               </Animated.View>
             </ScrollView>
+          ) : step === 'existing' ? (
+            // Show existing items
+            <ScrollView 
+              flex={1} 
+              contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              <Animated.View entering={FadeInDown.delay(100).springify()}>
+                <YStack gap={8} marginBottom={24}>
+                  <Pressable onPress={() => setStep('category')}>
+                    <Text fontSize={14} color="#1e3a5f">
+                      ← Change category
+                    </Text>
+                  </Pressable>
+                  <Text fontSize={20} fontWeight="700" color="#2d3436">
+                    {categoryLabel}
+                  </Text>
+                </YStack>
+              </Animated.View>
+
+              <ExistingItemsView
+                existingLiabilities={existingLiabilities}
+                category={category!}
+                categoryLabel={categoryLabel}
+                isLiability={true}
+                onAddMore={handleAddMore}
+              />
+            </ScrollView>
           ) : step === 'count' ? (
             // This step is handled by CountInputModal
             <YStack flex={1} />
@@ -186,10 +229,15 @@ export default function AddLiabilityScreen() {
                 isLiability={true}
                 onSave={handleMultiItemSave}
                 onCancel={() => {
-                  setStep('category');
+                  if (existingLiabilities.length > 0) {
+                    setStep('existing');
+                  } else {
+                    setStep('category');
+                  }
                   setCount(1);
                 }}
                 isLoading={isLoading}
+                existingCount={existingLiabilities.length}
               />
             ) : (
               // Single item form
@@ -273,7 +321,11 @@ export default function AddLiabilityScreen() {
           subtitle="You'll be able to enter details for each account separately"
           onClose={() => {
             setShowCountModal(false);
-            setStep('category');
+            if (existingLiabilities.length > 0) {
+              setStep('existing');
+            } else {
+              setStep('category');
+            }
           }}
           onConfirm={handleCountConfirm}
           maxCount={50}

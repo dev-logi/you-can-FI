@@ -9,4 +9,5 @@ export { Input, CurrencyInput } from './Input';
 export { OptionButton } from './OptionButton';
 export { CountInputModal } from './CountInputModal';
 export { MultiItemForm } from './MultiItemForm';
+export { ExistingItemsView } from './ExistingItemsView';
 

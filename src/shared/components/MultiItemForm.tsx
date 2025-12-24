@@ -34,6 +34,7 @@ interface MultiItemFormProps {
   onSave: (items: AssetItemData[] | LiabilityItemData[]) => Promise<void>;
   onCancel: () => void;
   isLoading?: boolean;
+  existingCount?: number; // Number of existing items in this category
 }
 
 type ItemData = AssetItemData | LiabilityItemData;
@@ -47,17 +48,26 @@ export function MultiItemForm({
   onSave,
   onCancel,
   isLoading = false,
+  existingCount = 0,
 }: MultiItemFormProps) {
   const [items, setItems] = useState<AssetItemData[] | LiabilityItemData[]>(() => {
     if (isLiability) {
       return Array.from({ length: count }, (_, i) => ({
-        name: count > 1 ? `${defaultName} ${i + 1}` : defaultName,
+        name: count > 1 
+          ? `${defaultName} ${existingCount + i + 1}` 
+          : existingCount > 0 
+          ? `${defaultName} ${existingCount + 1}`
+          : defaultName,
         balance: 0,
         interestRate: undefined,
       })) as LiabilityItemData[];
     } else {
       return Array.from({ length: count }, (_, i) => ({
-        name: count > 1 ? `${defaultName} ${i + 1}` : defaultName,
+        name: count > 1 
+          ? `${defaultName} ${existingCount + i + 1}` 
+          : existingCount > 0 
+          ? `${defaultName} ${existingCount + 1}`
+          : defaultName,
         value: 0,
       })) as AssetItemData[];
     }
@@ -134,7 +144,9 @@ export function MultiItemForm({
                 Enter Details
               </Text>
               <Text fontSize={14} color="#636e72">
-                {count === 1
+                {existingCount > 0
+                  ? `Adding ${count} ${count === 1 ? 'more account' : 'more accounts'} (${existingCount} existing)`
+                  : count === 1
                   ? `Enter details for your ${categoryLabel.toLowerCase()}`
                   : `Enter details for ${count} ${categoryLabel.toLowerCase()} accounts`}
               </Text>
@@ -156,12 +168,16 @@ export function MultiItemForm({
                 gap={16}
               >
                 <Text fontSize={16} fontWeight="600" color="#2d3436">
-                  {count > 1 ? `${categoryLabel} ${index + 1}` : categoryLabel}
+                  {count > 1 
+                    ? `${categoryLabel} ${existingCount + index + 1}` 
+                    : existingCount > 0 
+                    ? `${categoryLabel} ${existingCount + 1}`
+                    : categoryLabel}
                 </Text>
 
                 <Input
                   label="Name"
-                  placeholder={`e.g., ${defaultName}${count > 1 ? ` ${index + 1}` : ''}`}
+                  placeholder={`e.g., ${defaultName}${count > 1 ? ` ${existingCount + index + 1}` : existingCount > 0 ? ` ${existingCount + 1}` : ''}`}
                   value={item.name}
                   onChangeText={(text) => handleItemChange(index, 'name', text)}
                 />

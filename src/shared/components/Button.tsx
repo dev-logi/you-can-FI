@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { Button as TamaguiButton, styled, GetProps } from 'tamagui';
+import { Button as TamaguiButton, Text, styled, GetProps } from 'tamagui';
 
 const StyledButton = styled(TamaguiButton, {
   borderRadius: 12,
@@ -15,6 +15,10 @@ const StyledButton = styled(TamaguiButton, {
   fontFamily: '$body',
   fontWeight: '600',
   fontSize: 16,
+  minHeight: 52,
+  alignItems: 'center',
+  justifyContent: 'center',
+  overflow: 'visible',
 
   variants: {
     variant: {
@@ -86,14 +90,28 @@ type ButtonProps = GetProps<typeof StyledButton> & {
   loading?: boolean;
 };
 
-export function Button({ children, loading, disabled, ...props }: ButtonProps) {
+export function Button({ children, loading, disabled, variant = 'primary', ...props }: ButtonProps) {
+  const textColor = variant === 'primary' || variant === 'danger' ? '#ffffff' : 
+                    variant === 'secondary' ? '#1e3a5f' : '#636e72';
+  
   return (
     <StyledButton
       disabled={disabled || loading}
       opacity={disabled || loading ? 0.6 : 1}
+      variant={variant}
       {...props}
     >
-      {loading ? 'Loading...' : children}
+      <Text
+        fontSize={16}
+        fontWeight="600"
+        color={textColor}
+        textAlign="center"
+        lineHeight={20}
+        includeFontPadding={false}
+        textAlignVertical="center"
+      >
+        {loading ? 'Loading...' : children}
+      </Text>
     </StyledButton>
   );
 }

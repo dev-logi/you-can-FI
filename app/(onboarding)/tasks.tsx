@@ -138,8 +138,15 @@ export default function TasksScreen() {
                       TO DO ({pendingTasks.length})
                     </Text>
                     {pendingTasks.map((task) => (
-                      <Pressable key={task.id} onPress={() => handleTaskPress(task)}>
-                        <Card pressable>
+                      <Pressable 
+                        key={task.id} 
+                        onPress={() => handleTaskPress(task)}
+                        style={({ pressed }) => ({
+                          opacity: pressed ? 0.9 : 1,
+                          transform: [{ scale: pressed ? 0.98 : 1 }],
+                        })}
+                      >
+                        <Card>
                           <XStack alignItems="center" gap={12}>
                             <YStack
                               width={40}

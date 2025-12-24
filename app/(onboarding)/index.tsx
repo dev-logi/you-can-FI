@@ -31,15 +31,14 @@ export default function WelcomeScreen() {
       <YStack flex={1}>
         <ScrollView
           contentContainerStyle={{
-            flexGrow: 1,
             padding: 24,
             paddingTop: 16,
-            paddingBottom: 40,
+            paddingBottom: 24,
           }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <YStack flex={1} alignItems="center" gap={32} justifyContent="center">
+          <YStack alignItems="center" gap={32} justifyContent="center" minHeight={400}>
             <Animated.View entering={FadeInDown.delay(200).springify()}>
               <YStack
                 width={100}
@@ -97,11 +96,10 @@ export default function WelcomeScreen() {
 
         {/* Footer - Fixed at bottom with safe area */}
         <YStack
-          padding={24}
+          paddingHorizontal={24}
           paddingTop={16}
           paddingBottom={Math.max(insets.bottom, 20) + 16}
           backgroundColor="#faf8f5"
-          borderTopWidth={0}
         >
           <Animated.View entering={FadeInUp.delay(800).springify()}>
             <YStack gap={16}>

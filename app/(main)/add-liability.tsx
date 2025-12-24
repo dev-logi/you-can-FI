@@ -11,9 +11,23 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Pressable, KeyboardAvoidingView, Platform } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { Button, Card, Input, CurrencyInput, OptionButton } from '../../src/shared/components';
+import { Button, Card, Input, CurrencyInput, OptionButton, CountInputModal, MultiItemForm } from '../../src/shared/components';
 import { useNetWorthStore } from '../../src/features/netWorth/store';
 import { LiabilityCategory } from '../../src/shared/types';
+import { getLiabilityCategoryLabel } from '../../src/features/netWorth/service';
+import { isLiabilityCategoryItemizable, getLiabilityItemizationLabel } from '../../src/shared/utils/itemization';
+
+// Types for multi-item form
+type AssetItemData = {
+  name: string;
+  value: number;
+};
+
+type LiabilityItemData = {
+  name: string;
+  balance: number;
+  interestRate?: number;
+};
 
 const LIABILITY_CATEGORIES: Array<{ value: LiabilityCategory; label: string }> = [
   { value: 'mortgage', label: 'Mortgage' },
@@ -28,8 +42,10 @@ export default function AddLiabilityScreen() {
   const router = useRouter();
   const { addLiability, isLoading, error } = useNetWorthStore();
 
-  const [step, setStep] = useState<'category' | 'details'>('category');
+  const [step, setStep] = useState<'category' | 'count' | 'details'>('category');
   const [category, setCategory] = useState<LiabilityCategory | null>(null);
+  const [count, setCount] = useState(1);
+  const [showCountModal, setShowCountModal] = useState(false);
   const [name, setName] = useState('');
   const [balance, setBalance] = useState(0);
   const [interestRate, setInterestRate] = useState('');
@@ -40,7 +56,40 @@ export default function AddLiabilityScreen() {
     // Pre-fill name with category label
     const categoryConfig = LIABILITY_CATEGORIES.find((c) => c.value === cat);
     setName(categoryConfig?.label ?? '');
+    
+    // Check if category supports itemization
+    if (isLiabilityCategoryItemizable(cat)) {
+      setShowCountModal(true);
+    } else {
+      setStep('details');
+    }
+  };
+
+  const handleCountConfirm = (selectedCount: number) => {
+    setCount(selectedCount);
+    setShowCountModal(false);
     setStep('details');
+  };
+
+  const handleMultiItemSave = async (items: any[]) => {
+    setLocalError(null);
+    try {
+      // Create all items sequentially
+      const liabilityItems = items as LiabilityItemData[];
+      for (const item of liabilityItems) {
+        await addLiability({
+          category: category!,
+          name: item.name,
+          balance: item.balance,
+          interestRate: item.interestRate,
+        });
+      }
+      router.back();
+    } catch (error: any) {
+      console.error('Failed to add liabilities:', error);
+      const errorMessage = error?.detail || error?.message || 'Failed to add liabilities. Please try again.';
+      setLocalError(errorMessage);
+    }
   };
 
   const handleSave = async () => {
@@ -61,6 +110,9 @@ export default function AddLiabilityScreen() {
       setLocalError(errorMessage);
     }
   };
+
+  const categoryLabel = category ? getLiabilityCategoryLabel(category) : '';
+  const defaultName = category ? LIABILITY_CATEGORIES.find((c) => c.value === category)?.label ?? '' : '';
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }}>
@@ -120,77 +172,114 @@ export default function AddLiabilityScreen() {
                 </YStack>
               </Animated.View>
             </ScrollView>
+          ) : step === 'count' ? (
+            // This step is handled by CountInputModal
+            <YStack flex={1} />
           ) : (
-            <ScrollView 
-              flex={1} 
-              contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
-              <Animated.View entering={FadeInDown.delay(100).springify()}>
-                <YStack gap={8} marginBottom={24}>
-                  <Pressable onPress={() => setStep('category')}>
-                    <Text fontSize={14} color="#1e3a5f">
-                      ← Change category
-                    </Text>
-                  </Pressable>
-                  <Text fontSize={20} fontWeight="700" color="#2d3436">
-                    Liability Details
-                  </Text>
-                </YStack>
-              </Animated.View>
-
-              <Animated.View entering={FadeInDown.delay(200).springify()}>
-                <YStack gap={20} marginBottom={24}>
-                  <Input
-                    label="Name"
-                    placeholder="e.g., Chase Sapphire"
-                    value={name}
-                    onChangeText={setName}
-                  />
-
-                  <CurrencyInput
-                    label="Current Balance"
-                    value={balance}
-                    onChangeValue={setBalance}
-                    placeholder="0"
-                  />
-
-                  <Input
-                    label="Interest Rate (%)"
-                    placeholder="e.g., 18.99"
-                    value={interestRate}
-                    onChangeText={setInterestRate}
-                    keyboardType="decimal-pad"
-                    helperText="Optional"
-                  />
-                </YStack>
-              </Animated.View>
-
-              <Animated.View entering={FadeInDown.delay(300).springify()}>
-                <YStack gap={12}>
-                  {(localError || error) && (
-                    <Card variant="warning">
-                      <Text fontSize={14} color="#d4a84b" textAlign="center">
-                        {localError || error}
+            count > 1 ? (
+              // Multi-item form
+              <MultiItemForm
+                count={count}
+                category={category!}
+                categoryLabel={categoryLabel}
+                defaultName={defaultName}
+                isLiability={true}
+                onSave={handleMultiItemSave}
+                onCancel={() => {
+                  setStep('category');
+                  setCount(1);
+                }}
+                isLoading={isLoading}
+              />
+            ) : (
+              // Single item form
+              <ScrollView 
+                flex={1} 
+                contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
+                <Animated.View entering={FadeInDown.delay(100).springify()}>
+                  <YStack gap={8} marginBottom={24}>
+                    <Pressable onPress={() => setStep('category')}>
+                      <Text fontSize={14} color="#1e3a5f">
+                        ← Change category
                       </Text>
-                    </Card>
-                  )}
-                  <Button
-                    variant="primary"
-                    fullWidth
-                    onPress={handleSave}
-                    loading={isLoading}
-                    disabled={!name || balance <= 0}
-                  >
-                    Add Liability
-                  </Button>
-                </YStack>
-              </Animated.View>
-            </ScrollView>
+                    </Pressable>
+                    <Text fontSize={20} fontWeight="700" color="#2d3436">
+                      Liability Details
+                    </Text>
+                  </YStack>
+                </Animated.View>
+
+                <Animated.View entering={FadeInDown.delay(200).springify()}>
+                  <YStack gap={20} marginBottom={24}>
+                    <Input
+                      label="Name"
+                      placeholder="e.g., Chase Sapphire"
+                      value={name}
+                      onChangeText={setName}
+                    />
+
+                    <CurrencyInput
+                      label="Current Balance"
+                      value={balance}
+                      onChangeValue={setBalance}
+                      placeholder="0"
+                    />
+
+                    <Input
+                      label="Interest Rate (%)"
+                      placeholder="e.g., 18.99"
+                      value={interestRate}
+                      onChangeText={setInterestRate}
+                      keyboardType="decimal-pad"
+                      helperText="Optional"
+                    />
+                  </YStack>
+                </Animated.View>
+
+                <Animated.View entering={FadeInDown.delay(300).springify()}>
+                  <YStack gap={12}>
+                    {(localError || error) && (
+                      <Card variant="warning">
+                        <Text fontSize={14} color="#d4a84b" textAlign="center">
+                          {localError || error}
+                        </Text>
+                      </Card>
+                    )}
+                    <Button
+                      variant="primary"
+                      fullWidth
+                      onPress={handleSave}
+                      loading={isLoading}
+                      disabled={!name || balance <= 0}
+                    >
+                      Add Liability
+                    </Button>
+                  </YStack>
+                </Animated.View>
+              </ScrollView>
+            )
           )}
         </YStack>
       </KeyboardAvoidingView>
+
+      {/* Count Input Modal */}
+      {category && isLiabilityCategoryItemizable(category) && (
+        <CountInputModal
+          visible={showCountModal}
+          title={getLiabilityItemizationLabel(category)}
+          subtitle="You'll be able to enter details for each account separately"
+          onClose={() => {
+            setShowCountModal(false);
+            setStep('category');
+          }}
+          onConfirm={handleCountConfirm}
+          maxCount={50}
+          minCount={1}
+        />
+      )}
     </SafeAreaView>
   );
 }

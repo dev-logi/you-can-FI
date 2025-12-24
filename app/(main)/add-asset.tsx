@@ -11,10 +11,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Pressable, KeyboardAvoidingView, Platform } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { Button, Card, Input, CurrencyInput, OptionButton } from '../../src/shared/components';
+import { Button, Card, Input, CurrencyInput, OptionButton, CountInputModal, MultiItemForm } from '../../src/shared/components';
 import { useNetWorthStore } from '../../src/features/netWorth/store';
 import { AssetCategory } from '../../src/shared/types';
-import { ASSET_CATEGORY_CONFIG } from '../../src/features/netWorth/service';
+import { ASSET_CATEGORY_CONFIG, getAssetCategoryLabel } from '../../src/features/netWorth/service';
+import { isAssetCategoryItemizable, getAssetItemizationLabel } from '../../src/shared/utils/itemization';
 
 const ASSET_CATEGORIES: Array<{ value: AssetCategory; label: string }> = [
   { value: 'cash', label: 'Cash & Checking' },
@@ -39,8 +40,10 @@ export default function AddAssetScreen() {
   const router = useRouter();
   const { addAsset, isLoading, error } = useNetWorthStore();
 
-  const [step, setStep] = useState<'category' | 'details'>('category');
+  const [step, setStep] = useState<'category' | 'count' | 'details'>('category');
   const [category, setCategory] = useState<AssetCategory | null>(null);
+  const [count, setCount] = useState(1);
+  const [showCountModal, setShowCountModal] = useState(false);
   const [name, setName] = useState('');
   const [value, setValue] = useState(0);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -50,7 +53,39 @@ export default function AddAssetScreen() {
     // Pre-fill name with category label
     const categoryConfig = ASSET_CATEGORIES.find((c) => c.value === cat);
     setName(categoryConfig?.label ?? '');
+    
+    // Check if category supports itemization
+    if (isAssetCategoryItemizable(cat)) {
+      setShowCountModal(true);
+    } else {
+      setStep('details');
+    }
+  };
+
+  const handleCountConfirm = (selectedCount: number) => {
+    setCount(selectedCount);
+    setShowCountModal(false);
     setStep('details');
+  };
+
+  const handleMultiItemSave = async (items: any[]) => {
+    setLocalError(null);
+    try {
+      // Create all items sequentially
+      const assetItems = items as Array<{ name: string; value: number }>;
+      for (const item of assetItems) {
+        await addAsset({
+          category: category!,
+          name: item.name,
+          value: item.value,
+        });
+      }
+      router.back();
+    } catch (error: any) {
+      console.error('Failed to add assets:', error);
+      const errorMessage = error?.detail || error?.message || 'Failed to add assets. Please try again.';
+      setLocalError(errorMessage);
+    }
   };
 
   const handleSave = async () => {
@@ -70,6 +105,9 @@ export default function AddAssetScreen() {
       setLocalError(errorMessage);
     }
   };
+
+  const categoryLabel = category ? getAssetCategoryLabel(category) : '';
+  const defaultName = category ? ASSET_CATEGORIES.find((c) => c.value === category)?.label ?? '' : '';
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }}>
@@ -129,68 +167,105 @@ export default function AddAssetScreen() {
                 </YStack>
               </Animated.View>
             </ScrollView>
+          ) : step === 'count' ? (
+            // This step is handled by CountInputModal
+            <YStack flex={1} />
           ) : (
-            <ScrollView 
-              flex={1} 
-              contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
-              <Animated.View entering={FadeInDown.delay(100).springify()}>
-                <YStack gap={8} marginBottom={24}>
-                  <Pressable onPress={() => setStep('category')}>
-                    <Text fontSize={14} color="#1e3a5f">
-                      ← Change category
-                    </Text>
-                  </Pressable>
-                  <Text fontSize={20} fontWeight="700" color="#2d3436">
-                    Asset Details
-                  </Text>
-                </YStack>
-              </Animated.View>
-
-              <Animated.View entering={FadeInDown.delay(200).springify()}>
-                <YStack gap={20} marginBottom={24}>
-                  <Input
-                    label="Name"
-                    placeholder="e.g., Chase Checking"
-                    value={name}
-                    onChangeText={setName}
-                  />
-
-                  <CurrencyInput
-                    label="Current Value"
-                    value={value}
-                    onChangeValue={setValue}
-                    placeholder="0"
-                  />
-                </YStack>
-              </Animated.View>
-
-              <Animated.View entering={FadeInDown.delay(300).springify()}>
-                <YStack gap={12}>
-                  {(localError || error) && (
-                    <Card variant="warning">
-                      <Text fontSize={14} color="#d4a84b" textAlign="center">
-                        {localError || error}
+            count > 1 ? (
+              // Multi-item form
+              <MultiItemForm
+                count={count}
+                category={category!}
+                categoryLabel={categoryLabel}
+                defaultName={defaultName}
+                isLiability={false}
+                onSave={handleMultiItemSave}
+                onCancel={() => {
+                  setStep('category');
+                  setCount(1);
+                }}
+                isLoading={isLoading}
+              />
+            ) : (
+              // Single item form
+              <ScrollView 
+                flex={1} 
+                contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
+                <Animated.View entering={FadeInDown.delay(100).springify()}>
+                  <YStack gap={8} marginBottom={24}>
+                    <Pressable onPress={() => setStep('category')}>
+                      <Text fontSize={14} color="#1e3a5f">
+                        ← Change category
                       </Text>
-                    </Card>
-                  )}
-                  <Button
-                    variant="primary"
-                    fullWidth
-                    onPress={handleSave}
-                    loading={isLoading}
-                    disabled={!name || value <= 0}
-                  >
-                    Add Asset
-                  </Button>
-                </YStack>
-              </Animated.View>
-            </ScrollView>
+                    </Pressable>
+                    <Text fontSize={20} fontWeight="700" color="#2d3436">
+                      Asset Details
+                    </Text>
+                  </YStack>
+                </Animated.View>
+
+                <Animated.View entering={FadeInDown.delay(200).springify()}>
+                  <YStack gap={20} marginBottom={24}>
+                    <Input
+                      label="Name"
+                      placeholder="e.g., Chase Checking"
+                      value={name}
+                      onChangeText={setName}
+                    />
+
+                    <CurrencyInput
+                      label="Current Value"
+                      value={value}
+                      onChangeValue={setValue}
+                      placeholder="0"
+                    />
+                  </YStack>
+                </Animated.View>
+
+                <Animated.View entering={FadeInDown.delay(300).springify()}>
+                  <YStack gap={12}>
+                    {(localError || error) && (
+                      <Card variant="warning">
+                        <Text fontSize={14} color="#d4a84b" textAlign="center">
+                          {localError || error}
+                        </Text>
+                      </Card>
+                    )}
+                    <Button
+                      variant="primary"
+                      fullWidth
+                      onPress={handleSave}
+                      loading={isLoading}
+                      disabled={!name || value <= 0}
+                    >
+                      Add Asset
+                    </Button>
+                  </YStack>
+                </Animated.View>
+              </ScrollView>
+            )
           )}
         </YStack>
       </KeyboardAvoidingView>
+
+      {/* Count Input Modal */}
+      {category && isAssetCategoryItemizable(category) && (
+        <CountInputModal
+          visible={showCountModal}
+          title={getAssetItemizationLabel(category)}
+          subtitle="You'll be able to enter details for each account separately"
+          onClose={() => {
+            setShowCountModal(false);
+            setStep('category');
+          }}
+          onConfirm={handleCountConfirm}
+          maxCount={50}
+          minCount={1}
+        />
+      )}
     </SafeAreaView>
   );
 }

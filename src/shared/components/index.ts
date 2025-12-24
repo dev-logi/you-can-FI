@@ -7,4 +7,6 @@ export { Card } from './Card';
 export { ProgressBar } from './ProgressBar';
 export { Input, CurrencyInput } from './Input';
 export { OptionButton } from './OptionButton';
+export { CountInputModal } from './CountInputModal';
+export { MultiItemForm } from './MultiItemForm';
 

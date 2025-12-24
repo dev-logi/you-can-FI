@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { ScrollView, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import { YStack, XStack, Text } from 'tamagui';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -88,24 +88,58 @@ export function MultiItemForm({
       style={{ flex: 1 }}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 20}
     >
-      <ScrollView
-        flex={1}
-        contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <Animated.View entering={FadeInDown.delay(100).springify()}>
-          <YStack gap={8} marginBottom={24}>
-            <Text fontSize={20} fontWeight="700" color="#2d3436">
-              Enter Details
+      <YStack flex={1}>
+        {/* Header */}
+        <XStack
+          padding={24}
+          paddingBottom={16}
+          alignItems="center"
+          borderBottomWidth={1}
+          borderBottomColor="#e0ddd8"
+          minHeight={56}
+        >
+          <Pressable onPress={onCancel} style={{ minWidth: 60 }}>
+            <Text fontSize={16} color="#636e72">
+              Cancel
             </Text>
-            <Text fontSize={14} color="#636e72">
-              {count === 1
-                ? `Enter details for your ${categoryLabel.toLowerCase()}`
-                : `Enter details for ${count} ${categoryLabel.toLowerCase()} accounts`}
+          </Pressable>
+          <XStack flex={1} justifyContent="center" alignItems="center">
+            <Text 
+              fontSize={18} 
+              fontWeight="700" 
+              color="#2d3436"
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {isLiability ? 'Add Liabilities' : 'Add Assets'}
             </Text>
-          </YStack>
-        </Animated.View>
+          </XStack>
+          <XStack width={60} />
+        </XStack>
+
+        <ScrollView
+          flex={1}
+          contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <Animated.View entering={FadeInDown.delay(100).springify()}>
+            <YStack gap={8} marginBottom={24}>
+              <Pressable onPress={onCancel}>
+                <Text fontSize={14} color="#1e3a5f">
+                  ← Change category
+                </Text>
+              </Pressable>
+              <Text fontSize={20} fontWeight="700" color="#2d3436">
+                Enter Details
+              </Text>
+              <Text fontSize={14} color="#636e72">
+                {count === 1
+                  ? `Enter details for your ${categoryLabel.toLowerCase()}`
+                  : `Enter details for ${count} ${categoryLabel.toLowerCase()} accounts`}
+              </Text>
+            </YStack>
+          </Animated.View>
 
         <YStack gap={24}>
           {items.map((item, index) => (
@@ -181,7 +215,8 @@ export function MultiItemForm({
             </Button>
           </YStack>
         </Animated.View>
-      </ScrollView>
+        </ScrollView>
+      </YStack>
     </KeyboardAvoidingView>
   );
 }

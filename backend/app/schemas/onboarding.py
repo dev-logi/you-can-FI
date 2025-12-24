@@ -52,6 +52,11 @@ class OnboardingAnswerRequest(BaseModel):
     """Request to save an answer."""
     question_id: str
     answer: Union[str, List[str]]
+    # Optional count for itemization (yes/no questions)
+    count: Optional[int] = Field(None, ge=1, le=50)
+    # Optional counts dict for itemization (multi-select questions)
+    # e.g., {"401k": 2, "roth": 1}
+    counts: Optional[Dict[str, int]] = Field(None)
 
 
 class OnboardingHouseholdRequest(BaseModel):

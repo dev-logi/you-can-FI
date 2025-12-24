@@ -6,7 +6,7 @@ Manages question navigation and task generation.
 """
 
 import json
-from typing import List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 from sqlalchemy.orm import Session
 
 from app.repositories.onboarding_repository import onboarding_repository
@@ -109,17 +109,34 @@ class OnboardingService:
         db: Session, 
         question_id: str, 
         answer: Union[str, List[str]],
-        user_id: str
+        user_id: str,
+        count: Optional[int] = None,
+        counts: Optional[Dict[str, int]] = None
     ) -> Tuple[Optional[str], List[DataEntryTask]]:
         """
         Answer a question and generate tasks.
         Returns (next_question_id, generated_tasks).
-        """
-        # Save the answer
-        onboarding_repository.save_answer(db, question_id, answer, user_id)
         
-        # Generate tasks based on answer
-        tasks = self._generate_tasks(db, question_id, answer, user_id)
+        Args:
+            question_id: The question ID
+            answer: The answer (string for yes/no, list for multi-select)
+            user_id: The user ID
+            count: Optional count for itemization (yes/no questions)
+            counts: Optional counts dict for itemization (multi-select questions)
+        """
+        # Save the answer data (including counts for itemization)
+        answer_data = {
+            "answer": answer,
+        }
+        if count is not None:
+            answer_data["count"] = count
+        if counts is not None:
+            answer_data["counts"] = counts
+        
+        onboarding_repository.save_answer(db, question_id, answer_data, user_id)
+        
+        # Generate tasks based on answer and counts
+        tasks = self._generate_tasks(db, question_id, answer, user_id, count, counts)
         
         # Get next question
         next_question_id = self._get_next_question(question_id)
@@ -223,19 +240,57 @@ class OnboardingService:
         db: Session, 
         question_id: str, 
         answer: Union[str, List[str]],
-        user_id: str
+        user_id: str,
+        count: Optional[int] = None,
+        counts: Optional[Dict[str, int]] = None
     ) -> List[DataEntryTask]:
-        """Generate tasks based on question answer."""
+        """
+        Generate tasks based on question answer and itemization counts.
+        
+        Args:
+            question_id: The question ID
+            answer: The answer (string for yes/no, list for multi-select)
+            user_id: The user ID
+            count: Optional count for itemization (yes/no questions)
+            counts: Optional counts dict for itemization (multi-select questions)
+        """
         rules = TASK_GENERATION_RULES.get(question_id, {})
         if not rules:
             return []
         
-        answers = answer if isinstance(answer, list) else [answer]
         tasks_to_create = []
         
-        for ans in answers:
-            if ans in rules:
-                tasks_to_create.extend(rules[ans])
+        # Handle multi-select with counts dict
+        if isinstance(answer, list) and counts:
+            for ans in answer:
+                if ans in rules and ans in counts:
+                    task_count = counts[ans]
+                    base_task_template = rules[ans][0]
+                    for i in range(1, task_count + 1):
+                        task = base_task_template.copy()
+                        # Add number suffix to default name
+                        task["default_name"] = f"{task['default_name']} {i}"
+                        tasks_to_create.append(task)
+                elif ans in rules:
+                    # Fallback: no count specified, create 1 task
+                    tasks_to_create.extend(rules[ans])
+        
+        # Handle yes/no with single count
+        elif isinstance(answer, str) and count is not None:
+            if answer in rules:
+                base_task_template = rules[answer][0]
+                for i in range(1, count + 1):
+                    task = base_task_template.copy()
+                    # Add number suffix to default name
+                    task["default_name"] = f"{task['default_name']} {i}"
+                    tasks_to_create.append(task)
+        
+        # Fallback: original behavior (no itemization)
+        else:
+            answers = answer if isinstance(answer, list) else [answer]
+            for ans in answers:
+                if ans in rules:
+                    tasks_to_create.extend(rules[ans])
         
         if tasks_to_create:
             return onboarding_repository.add_tasks(db, tasks_to_create, user_id)

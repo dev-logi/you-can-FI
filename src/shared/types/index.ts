@@ -76,6 +76,10 @@ export interface QuestionOption {
     category: AssetCategory | LiabilityCategory;
     defaultName?: string;
   };
+  /** If true, this option supports itemization (asking for count) */
+  supportsItemization?: boolean;
+  /** Label for the count input screen (e.g., "How many savings accounts?") */
+  itemizationLabel?: string;
 }
 
 export interface Question {
@@ -88,6 +92,8 @@ export interface Question {
   nextQuestionId?: string | null;
   /** For branching based on specific answers */
   conditionalNext?: Record<string, string>;
+  /** If true, this question supports itemization for multi-select */
+  supportsItemization?: boolean;
 }
 
 export interface DataEntryTask {

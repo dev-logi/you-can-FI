@@ -101,6 +101,8 @@ export const QUESTIONS: Record<string, Question> = {
         label: 'Yes',
         value: 'yes',
         createsTask: true,
+        supportsItemization: true,
+        itemizationLabel: 'How many checking or cash accounts do you have?',
         taskConfig: {
           type: 'asset',
           category: 'cash',
@@ -123,6 +125,8 @@ export const QUESTIONS: Record<string, Question> = {
         label: 'Yes',
         value: 'yes',
         createsTask: true,
+        supportsItemization: true,
+        itemizationLabel: 'How many savings accounts do you have?',
         taskConfig: {
           type: 'asset',
           category: 'savings',
@@ -139,12 +143,14 @@ export const QUESTIONS: Record<string, Question> = {
     type: 'multi_choice',
     title: 'What retirement accounts do you have?',
     subtitle: 'Select all that apply',
+    supportsItemization: true,
     options: [
       {
         id: '401k',
         label: '401(k) / 403(b)',
         value: '401k',
         createsTask: true,
+        supportsItemization: true,
         taskConfig: {
           type: 'asset',
           category: 'retirement_401k',
@@ -156,6 +162,7 @@ export const QUESTIONS: Record<string, Question> = {
         label: 'Traditional IRA',
         value: 'ira',
         createsTask: true,
+        supportsItemization: true,
         taskConfig: {
           type: 'asset',
           category: 'retirement_ira',
@@ -167,6 +174,7 @@ export const QUESTIONS: Record<string, Question> = {
         label: 'Roth IRA',
         value: 'roth',
         createsTask: true,
+        supportsItemization: true,
         taskConfig: {
           type: 'asset',
           category: 'retirement_roth',
@@ -178,6 +186,7 @@ export const QUESTIONS: Record<string, Question> = {
         label: 'HSA',
         value: 'hsa',
         createsTask: true,
+        supportsItemization: true,
         taskConfig: {
           type: 'asset',
           category: 'retirement_hsa',
@@ -189,6 +198,7 @@ export const QUESTIONS: Record<string, Question> = {
         label: 'Pension',
         value: 'pension',
         createsTask: true,
+        supportsItemization: true,
         taskConfig: {
           type: 'asset',
           category: 'retirement_pension',
@@ -200,6 +210,7 @@ export const QUESTIONS: Record<string, Question> = {
         label: 'Other retirement account',
         value: 'other_retirement',
         createsTask: true,
+        supportsItemization: true,
         taskConfig: {
           type: 'asset',
           category: 'retirement_other',
@@ -222,6 +233,8 @@ export const QUESTIONS: Record<string, Question> = {
         label: 'Yes',
         value: 'yes',
         createsTask: true,
+        supportsItemization: true,
+        itemizationLabel: 'How many brokerage or investment accounts do you have?',
         taskConfig: {
           type: 'asset',
           category: 'brokerage',
@@ -288,6 +301,8 @@ export const QUESTIONS: Record<string, Question> = {
         label: 'Yes',
         value: 'yes',
         createsTask: true,
+        supportsItemization: true,
+        itemizationLabel: 'How many vehicles do you own?',
         taskConfig: {
           type: 'asset',
           category: 'vehicle',
@@ -354,6 +369,8 @@ export const QUESTIONS: Record<string, Question> = {
         label: 'Yes',
         value: 'yes',
         createsTask: true,
+        supportsItemization: true,
+        itemizationLabel: 'How many mortgages do you have?',
         taskConfig: {
           type: 'liability',
           category: 'mortgage',
@@ -376,6 +393,8 @@ export const QUESTIONS: Record<string, Question> = {
         label: 'Yes',
         value: 'yes',
         createsTask: true,
+        supportsItemization: true,
+        itemizationLabel: 'How many credit cards with balances do you have?',
         taskConfig: {
           type: 'liability',
           category: 'credit_card',
@@ -398,6 +417,8 @@ export const QUESTIONS: Record<string, Question> = {
         label: 'Yes',
         value: 'yes',
         createsTask: true,
+        supportsItemization: true,
+        itemizationLabel: 'How many auto loans do you have?',
         taskConfig: {
           type: 'liability',
           category: 'auto_loan',
@@ -420,6 +441,8 @@ export const QUESTIONS: Record<string, Question> = {
         label: 'Yes',
         value: 'yes',
         createsTask: true,
+        supportsItemization: true,
+        itemizationLabel: 'How many student loans do you have?',
         taskConfig: {
           type: 'liability',
           category: 'student_loan',
@@ -442,6 +465,8 @@ export const QUESTIONS: Record<string, Question> = {
         label: 'Yes',
         value: 'yes',
         createsTask: true,
+        supportsItemization: true,
+        itemizationLabel: 'How many other debts do you have?',
         taskConfig: {
           type: 'liability',
           category: 'other',

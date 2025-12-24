@@ -66,8 +66,47 @@ export function QuestionScreen({ questionId, question, nextRoute }: QuestionScre
     const answer = isMultiChoice ? selectedMulti : selectedSingle;
     if (!answer || (Array.isArray(answer) && answer.length === 0)) return;
 
+    // Check if itemization is needed
+    const needsItemization = checkItemizationNeeded(answer);
+
+    if (needsItemization) {
+      // Navigate to count input screen
+      const itemizationLabel = getItemizationLabel(answer);
+      const countRoute = `/(onboarding)/count-input?questionId=${encodeURIComponent(questionId)}&answer=${encodeURIComponent(JSON.stringify(answer))}&nextRoute=${encodeURIComponent(nextRoute)}&itemizationLabel=${encodeURIComponent(itemizationLabel)}`;
+      router.push(countRoute as any);
+      return;
+    }
+
+    // No itemization needed, proceed normally
     await answerQuestion(questionId, answer);
     router.push(nextRoute as any);
+  };
+
+  const checkItemizationNeeded = (answer: string | string[]): boolean => {
+    if (isMultiChoice && Array.isArray(answer)) {
+      // For multi-select, check if any selected option supports itemization
+      return answer.some((value) => {
+        const option = question.options?.find((opt) => opt.value === value);
+        return option?.supportsItemization === true && value !== 'none';
+      });
+    } else if (!isMultiChoice && typeof answer === 'string') {
+      // For yes/no, check if the selected option supports itemization
+      const option = question.options?.find((opt) => opt.value === answer);
+      return option?.supportsItemization === true && answer !== 'no';
+    }
+    return false;
+  };
+
+  const getItemizationLabel = (answer: string | string[]): string => {
+    if (isMultiChoice && Array.isArray(answer)) {
+      // For multi-select, we'll need to show counts for each option
+      // This will be handled in CountInputScreen
+      return 'How many accounts do you have?';
+    } else if (!isMultiChoice && typeof answer === 'string') {
+      const option = question.options?.find((opt) => opt.value === answer);
+      return option?.itemizationLabel || 'How many do you have?';
+    }
+    return 'How many do you have?';
   };
 
   const canContinue = isMultiChoice

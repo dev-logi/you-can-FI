@@ -105,15 +105,37 @@ class OnboardingApiServiceClass {
 
   /**
    * Answer a question.
+   * 
+   * @param questionId - The question ID
+   * @param answer - The answer (string for yes/no, string[] for multi-select)
+   * @param count - Optional count for itemization (yes/no questions)
+   * @param counts - Optional counts dict for itemization (multi-select questions)
    */
   async answerQuestion(
     questionId: string,
-    answer: string | string[]
+    answer: string | string[],
+    count?: number,
+    counts?: Record<string, number>
   ): Promise<{ nextQuestionId: string | null; tasksGenerated: DataEntryTask[] }> {
-    const response = await ApiClient.post<AnswerResponse>('/onboarding/answer', {
+    const payload: {
+      question_id: string;
+      answer: string | string[];
+      count?: number;
+      counts?: Record<string, number>;
+    } = {
       question_id: questionId,
       answer,
-    });
+    };
+
+    if (count !== undefined) {
+      payload.count = count;
+    }
+
+    if (counts !== undefined) {
+      payload.counts = counts;
+    }
+
+    const response = await ApiClient.post<AnswerResponse>('/onboarding/answer', payload);
 
     return {
       nextQuestionId: response.next_question_id,

@@ -76,12 +76,35 @@ def answer_question(
     """
     Answer a question in the onboarding flow.
     Returns the next question ID and any tasks generated.
+    
+    For itemization:
+    - Yes/No questions: Use 'count' field (e.g., count=3 creates 3 tasks)
+    - Multi-select questions: Use 'counts' dict (e.g., {"401k": 2, "roth": 1})
     """
+    # Validate count if provided
+    if request.count is not None:
+        if request.count < 1 or request.count > 50:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Count must be between 1 and 50"
+            )
+    
+    # Validate counts dict if provided
+    if request.counts:
+        for option, count in request.counts.items():
+            if count < 1 or count > 50:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Count for '{option}' must be between 1 and 50"
+                )
+    
     next_question_id, tasks = onboarding_service.answer_question(
         db, 
         request.question_id, 
         request.answer,
-        user_id
+        user_id,
+        count=request.count,
+        counts=request.counts
     )
     return AnswerResponse(
         next_question_id=next_question_id,

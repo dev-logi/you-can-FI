@@ -29,7 +29,12 @@ interface OnboardingStore {
 
   // Actions
   init: () => Promise<void>;
-  answerQuestion: (questionId: string, answer: string | string[]) => Promise<void>;
+  answerQuestion: (
+    questionId: string,
+    answer: string | string[],
+    count?: number,
+    counts?: Record<string, number>
+  ) => Promise<void>;
   setHouseholdType: (type: HouseholdType) => Promise<void>;
   completeTask: (taskId: string, data: { name: string; value: number; interestRate?: number }) => Promise<void>;
   skipTask: (taskId: string) => Promise<void>;
@@ -75,11 +80,21 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
   },
 
   // Answer a question and move to next
-  answerQuestion: async (questionId: string, answer: string | string[]) => {
+  answerQuestion: async (
+    questionId: string,
+    answer: string | string[],
+    count?: number,
+    counts?: Record<string, number>
+  ) => {
     set({ isLoading: true, error: null });
 
     try {
-      const { nextQuestionId, tasksGenerated } = await OnboardingApiService.answerQuestion(questionId, answer);
+      const { nextQuestionId, tasksGenerated } = await OnboardingApiService.answerQuestion(
+        questionId,
+        answer,
+        count,
+        counts
+      );
 
       // Update state optimistically without fetching full state
       const currentState = get().state;

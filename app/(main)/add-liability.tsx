@@ -317,7 +317,7 @@ export default function AddLiabilityScreen() {
       {category && isLiabilityCategoryItemizable(category) && (
         <CountInputModal
           visible={showCountModal}
-          title={existingLiabilities.length > 0 
+          title={(liabilities.filter(l => l.category === category).length > 0)
             ? getLiabilityAdditionalItemizationLabel(category)
             : getLiabilityItemizationLabel(category)}
           subtitle="You'll be able to enter details for each account separately"

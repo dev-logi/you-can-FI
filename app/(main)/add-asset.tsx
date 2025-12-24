@@ -303,7 +303,7 @@ export default function AddAssetScreen() {
       {category && isAssetCategoryItemizable(category) && (
         <CountInputModal
           visible={showCountModal}
-          title={existingAssets.length > 0 
+          title={(assets.filter(a => a.category === category).length > 0)
             ? getAssetAdditionalItemizationLabel(category)
             : getAssetItemizationLabel(category)}
           subtitle="You'll be able to enter details for each account separately"

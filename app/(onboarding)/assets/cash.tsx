@@ -11,7 +11,7 @@ export default function CashScreen() {
     <QuestionScreen
       questionId={QUESTION_IDS.CASH_ACCOUNTS}
       question={QUESTIONS[QUESTION_IDS.CASH_ACCOUNTS]}
-      nextRoute="/(onboarding)/assets/savings"
+      nextRoute="/(onboarding)/assets/retirement"
     />
   );
 }

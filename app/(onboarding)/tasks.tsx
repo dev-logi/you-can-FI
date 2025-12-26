@@ -132,7 +132,7 @@ export default function TasksScreen() {
             ) : (
               <YStack gap={16}>
                 {/* Pending Tasks */}
-                {pendingTasks.length > 0 && (
+                {pendingTasks.length > 0 ? (
                   <YStack gap={12}>
                     <Text fontSize={14} fontWeight="600" color="#636e72">
                       TO DO ({pendingTasks.length})
@@ -174,10 +174,22 @@ export default function TasksScreen() {
                       </Pressable>
                     ))}
                   </YStack>
+                ) : (
+                  // Show completed tasks if all are done
+                  completedTasks.length > 0 && (
+                    <Card>
+                      <YStack alignItems="center" padding={24} gap={12}>
+                        <Text fontSize={48}>✓</Text>
+                        <Text fontSize={16} color="#636e72" textAlign="center">
+                          All items completed! You can continue to review your net worth.
+                        </Text>
+                      </YStack>
+                    </Card>
+                  )
                 )}
 
                 {/* Completed Tasks */}
-                {completedTasks.length > 0 && (
+                {completedTasks.length > 0 && pendingTasks.length > 0 && (
                   <YStack gap={12}>
                     <Text fontSize={14} fontWeight="600" color="#636e72">
                       COMPLETED ({completedTasks.length})

@@ -6,14 +6,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
-import { Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
-import { YStack, Text } from 'tamagui';
+import { Platform, KeyboardAvoidingView, ScrollView, Pressable } from 'react-native';
+import { YStack, XStack, Text } from 'tamagui';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Button, ProgressBar, OptionButton } from '../../../shared/components';
 import { useOnboardingStore } from '../store';
 import { Question } from '../../../shared/types';
+import { getPreviousQuestionId } from '../engine';
 
 interface QuestionScreenProps {
   questionId: string;
@@ -29,6 +30,14 @@ export function QuestionScreen({ questionId, question, nextRoute }: QuestionScre
   const isMultiChoice = question.type === 'multi_choice';
   const [selectedSingle, setSelectedSingle] = useState<string | null>(null);
   const [selectedMulti, setSelectedMulti] = useState<string[]>([]);
+
+  // Check if we can go back (not on welcome screen)
+  const previousQuestionId = getPreviousQuestionId(questionId);
+  const canGoBack = previousQuestionId !== null;
+
+  const handleBack = () => {
+    router.back();
+  };
 
   // Restore previous answer if navigating back
   useEffect(() => {
@@ -126,6 +135,20 @@ export function QuestionScreen({ questionId, question, nextRoute }: QuestionScre
           showsVerticalScrollIndicator={false}
         >
           <YStack flex={1} padding={24} paddingBottom={40}>
+            {/* Back Button */}
+            {canGoBack && (
+              <Animated.View entering={FadeInDown.delay(50).springify()}>
+                <Pressable onPress={handleBack} style={{ marginBottom: 16 }}>
+                  <XStack alignItems="center" gap={8}>
+                    <Text fontSize={18}>←</Text>
+                    <Text fontSize={16} color="#636e72">
+                      Back
+                    </Text>
+                  </XStack>
+                </Pressable>
+              </Animated.View>
+            )}
+
             {/* Progress */}
             <Animated.View entering={FadeInDown.delay(100).springify()}>
               <ProgressBar progress={progress} />

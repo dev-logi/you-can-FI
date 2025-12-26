@@ -24,7 +24,6 @@ QUESTION_ORDER = [
     "welcome",
     "household",
     "cash_accounts",
-    "savings",
     "retirement",
     "investments",
     "real_estate",
@@ -43,9 +42,6 @@ QUESTION_ORDER = [
 TASK_GENERATION_RULES = {
     "cash_accounts": {
         "yes": [{"type": "asset", "category": "cash", "default_name": "Cash & Checking"}],
-    },
-    "savings": {
-        "yes": [{"type": "asset", "category": "savings", "default_name": "Savings Account"}],
     },
     "retirement": {
         "401k": [{"type": "asset", "category": "retirement_401k", "default_name": "401(k)"}],

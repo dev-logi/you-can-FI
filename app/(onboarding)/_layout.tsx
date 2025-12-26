@@ -26,7 +26,6 @@ export default function OnboardingLayout() {
       <Stack.Screen name="index" />
       <Stack.Screen name="household" />
       <Stack.Screen name="assets/cash" />
-      <Stack.Screen name="assets/savings" />
       <Stack.Screen name="assets/retirement" />
       <Stack.Screen name="assets/investments" />
       <Stack.Screen name="assets/real-estate" />

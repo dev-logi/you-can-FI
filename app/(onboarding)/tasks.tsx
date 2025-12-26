@@ -32,17 +32,26 @@ export default function TasksScreen() {
             await init();
           } else {
             // Otherwise, refresh to get latest tasks from backend
+            // If refresh fails, keep existing optimistic state
             const freshState = await OnboardingApiService.getState();
             console.log('[TasksScreen] Refreshed state:', {
               tasksCount: freshState?.tasks?.length ?? 0,
               tasks: freshState?.tasks,
+              existingStateTasksCount: state?.tasks?.length ?? 0,
             });
             if (freshState) {
               useOnboardingStore.setState({ state: freshState });
+            } else {
+              // Refresh failed, but we have optimistic state - keep it
+              console.log('[TasksScreen] Refresh failed, keeping optimistic state with', state.tasks?.length ?? 0, 'tasks');
             }
           }
         } catch (error) {
           console.error('[TasksScreen] Failed to refresh state:', error);
+          // Don't clear state on error - keep optimistic state if it exists
+          if (state && state.tasks && state.tasks.length > 0) {
+            console.log('[TasksScreen] Keeping optimistic state despite refresh error');
+          }
         }
       };
       refreshState();

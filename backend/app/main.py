@@ -40,24 +40,31 @@ app = FastAPI(
 )
 
 # Configure CORS
-# Allow all origins in development, specific origins in production
+# Note: When allow_origins=["*"], cannot use allow_credentials=True (browser security restriction)
+# Since we use JWT tokens in headers (not cookies), we don't need credentials
 cors_origins = settings.cors_origins
 if cors_origins == ["*"]:
-    # In development, allow all origins
-    cors_origins = ["*"]
+    # Allow all origins without credentials (JWT tokens work fine without credentials)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=False,  # Must be False when using "*"
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["*"],
+        expose_headers=["*"],
+        max_age=3600,
+    )
 else:
-    # In production, ensure HTTPS origins are included
-    cors_origins = list(cors_origins)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=cors_origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
-    expose_headers=["*"],
-    max_age=3600,  # Cache preflight requests for 1 hour
-)
+    # Specific origins - can use credentials if needed
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=list(cors_origins),
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["*"],
+        expose_headers=["*"],
+        max_age=3600,
+    )
 
 # Include API routes
 app.include_router(api_router, prefix=settings.api_v1_prefix)

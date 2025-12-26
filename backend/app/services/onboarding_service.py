@@ -250,18 +250,26 @@ class OnboardingService:
             count: Optional count for itemization (yes/no questions)
             counts: Optional counts dict for itemization (multi-select questions)
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        
         rules = TASK_GENERATION_RULES.get(question_id, {})
+        logger.info(f"[TaskGeneration] question_id={question_id}, answer={answer}, count={count}, counts={counts}, rules_keys={list(rules.keys())}")
+        
         if not rules:
+            logger.warning(f"[TaskGeneration] No rules found for question_id={question_id}")
             return []
         
         tasks_to_create = []
         
         # Handle multi-select with counts dict
         if isinstance(answer, list) and counts:
+            logger.info(f"[TaskGeneration] Handling multi-select with counts: answer={answer}, counts={counts}")
             for ans in answer:
                 if ans in rules and ans in counts:
                     task_count = counts[ans]
                     base_task_template = rules[ans][0]
+                    logger.info(f"[TaskGeneration] Creating {task_count} tasks for {ans}")
                     for i in range(1, task_count + 1):
                         task = base_task_template.copy()
                         # Add number suffix to default name
@@ -269,27 +277,40 @@ class OnboardingService:
                         tasks_to_create.append(task)
                 elif ans in rules:
                     # Fallback: no count specified, create 1 task
+                    logger.info(f"[TaskGeneration] No count for {ans}, creating 1 task")
                     tasks_to_create.extend(rules[ans])
+                else:
+                    logger.warning(f"[TaskGeneration] Answer {ans} not in rules for question {question_id}")
         
         # Handle yes/no with single count
         elif isinstance(answer, str) and count is not None:
+            logger.info(f"[TaskGeneration] Handling yes/no with count: answer={answer}, count={count}")
             if answer in rules:
                 base_task_template = rules[answer][0]
+                logger.info(f"[TaskGeneration] Creating {count} tasks for {answer}")
                 for i in range(1, count + 1):
                     task = base_task_template.copy()
                     # Add number suffix to default name
                     task["default_name"] = f"{task['default_name']} {i}"
                     tasks_to_create.append(task)
+            else:
+                logger.warning(f"[TaskGeneration] Answer {answer} not in rules for question {question_id}")
         
         # Fallback: original behavior (no itemization)
         else:
+            logger.info(f"[TaskGeneration] Using fallback (no itemization): answer={answer}")
             answers = answer if isinstance(answer, list) else [answer]
             for ans in answers:
                 if ans in rules:
                     tasks_to_create.extend(rules[ans])
+                else:
+                    logger.warning(f"[TaskGeneration] Answer {ans} not in rules for question {question_id}")
         
+        logger.info(f"[TaskGeneration] Created {len(tasks_to_create)} tasks")
         if tasks_to_create:
-            return onboarding_repository.add_tasks(db, tasks_to_create, user_id)
+            result = onboarding_repository.add_tasks(db, tasks_to_create, user_id)
+            logger.info(f"[TaskGeneration] Saved {len(result)} tasks to database")
+            return result
         
         return []
     

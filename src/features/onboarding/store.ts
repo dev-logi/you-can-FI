@@ -96,6 +96,16 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
         counts
       );
 
+      console.log('[OnboardingStore] Answer question result:', {
+        questionId,
+        answer,
+        count,
+        counts,
+        nextQuestionId,
+        tasksGenerated: tasksGenerated.length,
+        tasksGeneratedDetails: tasksGenerated,
+      });
+
       // Update state optimistically without fetching full state
       const currentState = get().state;
       const currentQuestion = nextQuestionId ? QUESTIONS[nextQuestionId] : null;
@@ -104,6 +114,12 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
       // Merge new tasks into existing tasks
       const existingTasks = currentState?.tasks ?? [];
       const newTasks = [...existingTasks, ...tasksGenerated];
+      
+      console.log('[OnboardingStore] Task merge:', {
+        existingTasksCount: existingTasks.length,
+        newTasksCount: tasksGenerated.length,
+        totalTasksCount: newTasks.length,
+      });
       
       // Update state optimistically
       const updatedState: OnboardingState | null = currentState ? {

@@ -33,6 +33,10 @@ export default function TasksScreen() {
           } else {
             // Otherwise, refresh to get latest tasks from backend
             const freshState = await OnboardingApiService.getState();
+            console.log('[TasksScreen] Refreshed state:', {
+              tasksCount: freshState?.tasks?.length ?? 0,
+              tasks: freshState?.tasks,
+            });
             if (freshState) {
               useOnboardingStore.setState({ state: freshState });
             }

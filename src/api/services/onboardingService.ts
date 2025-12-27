@@ -90,7 +90,12 @@ class OnboardingApiServiceClass {
     try {
       const response = await ApiClient.get<OnboardingStateResponse>('/onboarding');
       return toOnboardingState(response);
-    } catch {
+    } catch (error) {
+      console.error('[OnboardingApiService] getState failed:', error);
+      // Log the actual error so we can diagnose why it's failing
+      if ((error as any).status) {
+        console.error('[OnboardingApiService] Error status:', (error as any).status, 'detail:', (error as any).detail);
+      }
       return null;
     }
   }

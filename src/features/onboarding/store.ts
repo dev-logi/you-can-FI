@@ -160,8 +160,34 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
   setHouseholdType: async (type: HouseholdType) => {
     try {
       await OnboardingApiService.setHouseholdType(type);
-      const state = await OnboardingApiService.getState();
-      set({ state });
+      
+      // Preserve existing state if refresh fails
+      const currentState = get().state;
+      try {
+        const freshState = await OnboardingApiService.getState();
+        if (freshState) {
+          set({ state: freshState });
+        } else if (currentState) {
+          // Update household type optimistically
+          set({
+            state: {
+              ...currentState,
+              householdType: type,
+            },
+          });
+        }
+      } catch (refreshError) {
+        console.error('[OnboardingStore] Failed to refresh state after setting household type:', refreshError);
+        // Update household type optimistically if refresh fails
+        if (currentState) {
+          set({
+            state: {
+              ...currentState,
+              householdType: type,
+            },
+          });
+        }
+      }
     } catch (error) {
       console.error('[OnboardingStore] Set household error:', error);
       set({ error: 'Failed to save household type' });
@@ -174,8 +200,37 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
 
     try {
       await OnboardingApiService.completeTask(taskId, data);
-      const state = await OnboardingApiService.getState();
-      set({ isLoading: false, state });
+      
+      // Optimistically update the task as completed
+      const currentState = get().state;
+      if (currentState) {
+        const updatedTasks = currentState.tasks.map(task =>
+          task.id === taskId
+            ? { ...task, isCompleted: true, entityId: 'pending' } // Will be updated by refresh
+            : task
+        );
+        
+        set({
+          isLoading: false,
+          state: {
+            ...currentState,
+            tasks: updatedTasks,
+          },
+        });
+      }
+      
+      // Try to refresh state in background, but don't lose state if it fails
+      try {
+        const freshState = await OnboardingApiService.getState();
+        if (freshState) {
+          set({ state: freshState });
+        } else {
+          console.warn('[OnboardingStore] getState returned null after completing task, keeping optimistic state');
+        }
+      } catch (refreshError) {
+        console.error('[OnboardingStore] Failed to refresh state after completing task:', refreshError);
+        // Keep the optimistic state we set above
+      }
     } catch (error) {
       console.error('[OnboardingStore] Complete task error:', error);
       set({
@@ -189,8 +244,36 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
   skipTask: async (taskId: string) => {
     try {
       await OnboardingApiService.skipTask(taskId);
-      const state = await OnboardingApiService.getState();
-      set({ state });
+      
+      // Optimistically update the task as completed
+      const currentState = get().state;
+      if (currentState) {
+        const updatedTasks = currentState.tasks.map(task =>
+          task.id === taskId
+            ? { ...task, isCompleted: true }
+            : task
+        );
+        
+        set({
+          state: {
+            ...currentState,
+            tasks: updatedTasks,
+          },
+        });
+      }
+      
+      // Try to refresh state in background
+      try {
+        const freshState = await OnboardingApiService.getState();
+        if (freshState) {
+          set({ state: freshState });
+        } else {
+          console.warn('[OnboardingStore] getState returned null after skipping task, keeping optimistic state');
+        }
+      } catch (refreshError) {
+        console.error('[OnboardingStore] Failed to refresh state after skipping task:', refreshError);
+        // Keep the optimistic state we set above
+      }
     } catch (error) {
       console.error('[OnboardingStore] Skip task error:', error);
       set({ error: 'Failed to skip task' });
@@ -203,8 +286,36 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
 
     try {
       await OnboardingApiService.complete();
-      const state = await OnboardingApiService.getState();
-      set({ isLoading: false, state });
+      
+      // Preserve existing state if refresh fails
+      const currentState = get().state;
+      try {
+        const freshState = await OnboardingApiService.getState();
+        if (freshState) {
+          set({ isLoading: false, state: freshState });
+        } else if (currentState) {
+          // Update optimistically
+          set({
+            isLoading: false,
+            state: {
+              ...currentState,
+              isComplete: true,
+            },
+          });
+        }
+      } catch (refreshError) {
+        console.error('[OnboardingStore] Failed to refresh state after completing onboarding:', refreshError);
+        // Update optimistically if refresh fails
+        if (currentState) {
+          set({
+            isLoading: false,
+            state: {
+              ...currentState,
+              isComplete: true,
+            },
+          });
+        }
+      }
     } catch (error) {
       console.error('[OnboardingStore] Complete error:', error);
       set({
@@ -239,21 +350,48 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
   // Navigate to a specific step
   goToStep: async (stepId: string) => {
     try {
-      const state = await OnboardingApiService.getState();
-      if (!state) return;
-
+      const currentState = get().state;
+      
       // Update current step via API
       await OnboardingApiService.goToStep(stepId);
 
-      const updatedState = await OnboardingApiService.getState();
       const currentQuestion = QUESTIONS[stepId] ?? null;
       const progress = getQuestionProgress(stepId);
 
-      set({
-        state: updatedState,
-        currentQuestion,
-        progress,
-      });
+      // Try to refresh state, but preserve if it fails
+      try {
+        const updatedState = await OnboardingApiService.getState();
+        if (updatedState) {
+          set({
+            state: updatedState,
+            currentQuestion,
+            progress,
+          });
+        } else if (currentState) {
+          // Update optimistically
+          set({
+            state: {
+              ...currentState,
+              currentStepId: stepId,
+            },
+            currentQuestion,
+            progress,
+          });
+        }
+      } catch (refreshError) {
+        console.error('[OnboardingStore] Failed to refresh state after navigating:', refreshError);
+        // Update optimistically if refresh fails
+        if (currentState) {
+          set({
+            state: {
+              ...currentState,
+              currentStepId: stepId,
+            },
+            currentQuestion,
+            progress,
+          });
+        }
+      }
     } catch (error) {
       console.error('[OnboardingStore] Go to step error:', error);
       set({ error: 'Failed to navigate' });

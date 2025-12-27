@@ -23,6 +23,7 @@ export default function SignUpScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
+  const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false);
 
   const handleSignUp = async () => {
     if (!email || !password || !confirmPassword) {
@@ -42,14 +43,22 @@ export default function SignUpScreen() {
 
     setLocalError(null);
     clearError();
+    setNeedsEmailConfirmation(false);
 
-    const { error: signUpError } = await signUp(email, password);
+    const { error: signUpError, needsEmailConfirmation: needsConfirmation } = await signUp(email, password);
 
     if (signUpError) {
       setLocalError(signUpError.message);
+    } else if (needsConfirmation) {
+      // Email confirmation required - navigate to verification screen
+      setNeedsEmailConfirmation(true);
+      router.push({
+        pathname: '/(auth)/verify-email',
+        params: { email },
+      });
     } else {
+      // Session available - user can proceed directly
       // Wait for session to be available (Supabase might need a moment to set it)
-      // Try multiple times with increasing delays
       let sessionAvailable = false;
       for (let i = 0; i < 10; i++) {
         await new Promise(resolve => setTimeout(resolve, 200));

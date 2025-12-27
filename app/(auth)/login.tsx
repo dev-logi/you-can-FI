@@ -14,6 +14,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Button, Input, Card } from '@/shared/components';
 import { useAuthStore } from '@/features/auth/store';
 import { ApiClient } from '@/api/client';
+import { supabase } from '@/lib/supabase';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -22,6 +23,21 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
+  const [showResendOption, setShowResendOption] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
+
+  const getFriendlyErrorMessage = (error: string) => {
+    if (error.includes('Email not confirmed') || error.includes('email_not_confirmed')) {
+      return 'Please verify your email address before signing in.';
+    }
+    if (error.includes('Invalid login credentials') || error.includes('Invalid')) {
+      return 'Email or password is incorrect. Please try again.';
+    }
+    if (error.includes('Too many requests')) {
+      return 'Too many login attempts. Please try again in a few minutes.';
+    }
+    return error;
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -35,8 +51,17 @@ export default function LoginScreen() {
     const { error: signInError } = await signIn(email, password);
 
     if (signInError) {
-      setLocalError(signInError.message);
+      const friendlyMessage = getFriendlyErrorMessage(signInError.message);
+      setLocalError(friendlyMessage);
+      
+      // If email not confirmed, show resend option
+      if (signInError.message.includes('Email not confirmed') || signInError.message.includes('email_not_confirmed')) {
+        setShowResendOption(true);
+      } else {
+        setShowResendOption(false);
+      }
     } else {
+      setShowResendOption(false);
       // Wait for session to be available
       // Try multiple times with increasing delays
       let sessionAvailable = false;
@@ -108,9 +133,42 @@ export default function LoginScreen() {
 
               {(localError || error) && (
                 <Card variant="warning">
-                  <Text color="#d4a84b" fontSize={14}>
-                    {localError || error}
-                  </Text>
+                  <YStack gap={8}>
+                    <Text color="#d4a84b" fontSize={14}>
+                      {localError || error}
+                    </Text>
+                    {showResendOption && (
+                      <Pressable onPress={async () => {
+                        setResendSuccess(false);
+                        try {
+                          const { error: resendError } = await supabase.auth.resend({
+                            type: 'signup',
+                            email,
+                            options: {
+                              emailRedirectTo: 'youcanfi://email-confirmed',
+                            },
+                          });
+                          if (resendError) {
+                            setLocalError(resendError.message);
+                          } else {
+                            setResendSuccess(true);
+                            setTimeout(() => setResendSuccess(false), 5000);
+                          }
+                        } catch (err) {
+                          setLocalError('Failed to resend confirmation email');
+                        }
+                      }}>
+                        <Text color="#1e3a5f" fontSize={14} fontWeight="600" textDecorationLine="underline">
+                          Resend confirmation email
+                        </Text>
+                      </Pressable>
+                    )}
+                    {resendSuccess && (
+                      <Text color="#4a7c59" fontSize={14}>
+                        ✓ Confirmation email sent! Please check your inbox.
+                      </Text>
+                    )}
+                  </YStack>
                 </Card>
               )}
 

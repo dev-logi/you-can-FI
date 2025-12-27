@@ -19,9 +19,10 @@ interface AuthStore {
 
   // Actions
   initialize: () => Promise<void>;
-  signUp: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+  signUp: (email: string, password: string) => Promise<{ error: AuthError | null; needsEmailConfirmation?: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
+  resendConfirmationEmail: (email: string) => Promise<{ error: AuthError | null }>;
   clearError: () => void;
 }
 
@@ -85,6 +86,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: 'youcanfi://email-confirmed', // Deep link for email confirmation
+        },
       });
 
       if (error) {
@@ -92,15 +96,51 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         return { error };
       }
 
+      // Check if email confirmation is required
+      // If session is null but user exists, email confirmation is required
+      const needsEmailConfirmation = !data.session && data.user && !data.user.email_confirmed_at;
+
       set({
         session: data.session,
         user: data.user,
         isLoading: false,
       });
 
-      return { error: null };
+      return { 
+        error: null,
+        needsEmailConfirmation,
+      };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to sign up';
+      set({ error: errorMessage, isLoading: false });
+      return { error: { message: errorMessage } as AuthError };
+    }
+  },
+
+  /**
+   * Resend email confirmation
+   */
+  resendConfirmationEmail: async (email: string) => {
+    set({ isLoading: true, error: null });
+
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: {
+          emailRedirectTo: 'youcanfi://email-confirmed',
+        },
+      });
+
+      if (error) {
+        set({ error: error.message, isLoading: false });
+        return { error };
+      }
+
+      set({ isLoading: false });
+      return { error: null };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to resend confirmation email';
       set({ error: errorMessage, isLoading: false });
       return { error: { message: errorMessage } as AuthError };
     }

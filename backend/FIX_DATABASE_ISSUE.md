@@ -42,19 +42,21 @@ UPDATE liabilities
 
 Or use the provided script: `backend/fix_migration_defaults.sql`
 
-## How to Fix on Railway
+## How to Fix on Supabase
 
 ### Option 1: Run the Fix SQL Script
 
-1. Go to Railway dashboard → Your backend service
-2. Open the PostgreSQL database (or Supabase)
-3. Run the SQL from `backend/fix_migration_defaults.sql`
+1. Go to **Supabase Dashboard** → Your project
+2. Navigate to **SQL Editor** (left sidebar)
+3. Create a new query
+4. Copy and paste the SQL from `backend/fix_migration_defaults.sql`
+5. Click **Run** to execute
 
 ### Option 2: Re-run Migration (if it failed)
 
 If the migration partially applied:
 
-1. Check current state:
+1. **In Supabase SQL Editor**, check current state:
    ```sql
    -- Check if columns exist
    SELECT column_name 
@@ -63,11 +65,9 @@ If the migration partially applied:
      AND column_name = 'is_connected';
    ```
 
-2. If columns don't exist, the migration didn't run. You can:
-   - Run the fixed migration manually
-   - Or let Railway run it on next deploy
+2. If columns don't exist, the migration didn't run. The backend will run it on next deploy.
 
-3. If columns exist but have NULL values:
+3. If columns exist but have NULL values (migration partially failed):
    ```sql
    -- Set defaults and update NULLs
    ALTER TABLE assets ALTER COLUMN is_connected SET DEFAULT false;
@@ -100,9 +100,11 @@ WHERE is_connected IS NULL;
 
 ## Next Steps
 
-1. **Fix the database** using one of the options above
-2. **Redeploy backend** - the fixed migration will be used for new deployments
-3. **Test the API** - assets and liabilities should load correctly now
+1. **Go to Supabase Dashboard** → SQL Editor
+2. **Run the fix SQL** from `backend/fix_migration_defaults.sql` (or use Option 2 commands above)
+3. **Verify the fix** using the verification queries below
+4. **Test the API** - assets and liabilities should load correctly now
+5. **Redeploy backend on Railway** (optional - the fixed migration will be used for new deployments)
 
 ## Why This Happened
 

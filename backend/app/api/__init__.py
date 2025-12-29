@@ -17,10 +17,17 @@ api_router.include_router(onboarding.router, prefix="/onboarding", tags=["Onboar
 api_router.include_router(net_worth.router, prefix="/net-worth", tags=["Net Worth"])
 
 # Include Plaid router only if it can be imported (graceful degradation)
+# This allows the app to start even if Plaid dependencies are missing
 try:
     from app.api import plaid
     api_router.include_router(plaid.router, prefix="/plaid", tags=["Plaid"])
+    print("✅ Plaid router loaded successfully")
+except ImportError as e:
+    print(f"⚠️  WARNING: Plaid router not available (ImportError: {e})")
+    print("   Plaid endpoints will not be available. This is OK if Plaid is not configured.")
 except Exception as e:
-    print(f"WARNING: Failed to load Plaid router: {e}")
-    print("Plaid endpoints will not be available. Check Plaid configuration.")
+    print(f"⚠️  WARNING: Failed to load Plaid router: {e}")
+    print("   Plaid endpoints will not be available. Check Plaid configuration.")
+    import traceback
+    traceback.print_exc()
 

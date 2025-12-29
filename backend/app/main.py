@@ -18,8 +18,12 @@ async def lifespan(app: FastAPI):
     """Application lifecycle handler."""
     # Startup: Create database tables
     print("🚀 Starting You Can FI Backend...")
-    create_tables()
-    print("✅ Database tables created/verified")
+    try:
+        create_tables()
+        print("✅ Database tables created/verified")
+    except Exception as e:
+        print(f"⚠️  WARNING: Failed to create database tables: {e}")
+        print("App will continue, but database operations may fail.")
     
     yield
     

@@ -535,6 +535,17 @@ export default function DashboardScreen() {
         data={liabilityChartData}
         valueColor="#c75c5c"
       />
+
+      {/* Account Linking Modal */}
+      <AccountLinkingModal
+        visible={showAccountLinkingModal}
+        account={linkedAccount}
+        onClose={() => {
+          setShowAccountLinkingModal(false);
+          setLinkedAccount(null);
+        }}
+        onComplete={handleAccountLinkingComplete}
+      />
     </SafeAreaView>
   );
 }

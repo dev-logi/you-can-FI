@@ -26,16 +26,34 @@ class PlaidService:
     """Service for Plaid API interactions."""
     
     def __init__(self):
-        """Initialize Plaid client."""
-        configuration = Configuration(
-            host=getattr(plaid_api.Environment, settings.plaid_environment.upper(), plaid_api.Environment.sandbox),
-            api_key={
-                'clientId': settings.plaid_client_id,
-                'secret': settings.plaid_secret,
-            }
-        )
-        api_client = ApiClient(configuration)
-        self.client = plaid_api.PlaidApi(api_client)
+        """Initialize Plaid client lazily."""
+        self._client = None
+        self._initialized = False
+    
+    @property
+    def client(self):
+        """Lazy initialization of Plaid client."""
+        if not self._initialized:
+            try:
+                configuration = Configuration(
+                    host=getattr(plaid_api.Environment, settings.plaid_environment.upper(), plaid_api.Environment.sandbox),
+                    api_key={
+                        'clientId': settings.plaid_client_id or '',
+                        'secret': settings.plaid_secret or '',
+                    }
+                )
+                api_client = ApiClient(configuration)
+                self._client = plaid_api.PlaidApi(api_client)
+                self._initialized = True
+            except Exception as e:
+                print(f"WARNING: Failed to initialize Plaid client: {e}")
+                # Don't raise - allow app to start even if Plaid is misconfigured
+                # Actual API calls will fail gracefully with proper error messages
+                self._initialized = True  # Mark as initialized to prevent retry loops
+                self._client = None
+        if self._client is None:
+            raise RuntimeError("Plaid client not initialized. Check PLAID_CLIENT_ID and PLAID_SECRET environment variables.")
+        return self._client
     
     def create_link_token(self, user_id: str) -> str:
         """

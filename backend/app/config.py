@@ -27,6 +27,12 @@ class Settings(BaseSettings):
     # Supabase JWT Secret for token verification
     supabase_jwt_secret: str = "PLBuWudal9yVmZP22EjfW1RP39IVv0/Jyji682nTGDzbwFyUAY0Gf1XVbdefVrUoYE7D0UX5/eoqJtBbbFNhwg=="
     
+    # Plaid Configuration
+    plaid_client_id: str = ""
+    plaid_secret: str = ""
+    plaid_environment: str = "sandbox"  # 'sandbox', 'development', 'production'
+    plaid_encryption_key: str = ""  # For encrypting access tokens
+    
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

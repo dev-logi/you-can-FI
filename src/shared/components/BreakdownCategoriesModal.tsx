@@ -5,9 +5,10 @@
  */
 
 import React from 'react';
-import { Modal, ScrollView, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
-import { YStack, XStack, Text } from 'tamagui';
+import { Modal, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
+import { YStack, XStack, Text, ScrollView } from 'tamagui';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Card } from './Card';
@@ -36,37 +37,45 @@ export function BreakdownCategoriesModal({
       transparent={false}
       onRequestClose={onClose}
     >
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#faf8f5' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
+          style={{ flex: 1, backgroundColor: '#faf8f5' }}
         >
           <YStack flex={1}>
             {/* Header */}
             <XStack
-              padding={24}
-              paddingBottom={16}
+              paddingHorizontal={24}
+              paddingVertical={20}
               justifyContent="space-between"
               alignItems="center"
               borderBottomWidth={1}
-              borderBottomColor="#e0e0e0"
+              borderBottomColor="#f0f0f0"
               backgroundColor="#ffffff"
             >
-              <Text fontSize={20} fontWeight="700" color="#2d3436">
+              <Text fontSize={22} fontWeight="700" color="#2d3436">
                 {title}
               </Text>
-              <Pressable 
+              <Pressable
                 onPress={onClose}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+                style={({ pressed }) => ({
+                  opacity: pressed ? 0.6 : 1,
+                  padding: 8,
+                  backgroundColor: '#f5f6f7',
+                  borderRadius: 20,
+                })}
               >
-                <Text fontSize={28} color="#636e72" lineHeight={28}>×</Text>
+                <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#636e72" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <Path d="M18 6L6 18M6 6l12 12" />
+                </Svg>
               </Pressable>
             </XStack>
 
             {/* Categories List */}
             <ScrollView
               flex={1}
-              contentContainerStyle={{ padding: 24 }}
+              contentContainerStyle={{ padding: 24, paddingBottom: 40 }}
               showsVerticalScrollIndicator={false}
             >
               <YStack gap={12}>

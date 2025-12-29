@@ -15,7 +15,7 @@ import { Button, Card, Input, CurrencyInput } from '../../src/shared/components'
 import { useNetWorthStore } from '../../src/features/netWorth/store';
 import { getAssetCategoryLabel } from '../../src/features/netWorth/service';
 import { Asset, AssetCategory } from '../../src/shared/types';
-import { formatCurrency } from '../../src/shared/utils';
+import { formatCurrency, formatPercentage, calculatePercentage } from '../../src/shared/utils';
 
 export default function AssetsScreen() {
   const router = useRouter();
@@ -65,6 +65,15 @@ export default function AssetsScreen() {
     return acc;
   }, {} as Record<AssetCategory, Asset[]>);
 
+  // Calculate totals and percentages for each category
+  const totalAssets = summary?.totalAssets ?? 0;
+  const categoryTotals = Object.entries(groupedAssets).reduce((acc, [category, categoryAssets]) => {
+    const total = categoryAssets.reduce((sum, asset) => sum + asset.value, 0);
+    const percentage = calculatePercentage(total, totalAssets);
+    acc[category] = { total, percentage };
+    return acc;
+  }, {} as Record<string, { total: number; percentage: number }>);
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#faf8f5' }}>
       <YStack flex={1}>
@@ -110,39 +119,52 @@ export default function AssetsScreen() {
               </Card>
             ) : (
               <YStack gap={24} paddingBottom={100}>
-                {Object.entries(groupedAssets).map(([category, categoryAssets]) => (
-                  <YStack key={category} gap={12}>
-                    <Text fontSize={14} fontWeight="600" color="#636e72">
-                      {getAssetCategoryLabel(category as AssetCategory).toUpperCase()}
-                    </Text>
-                    {categoryAssets.map((asset) => (
-                      <Card key={asset.id} pressable>
-                        <XStack justifyContent="space-between" alignItems="center">
-                          <YStack flex={1}>
-                            <Text fontSize={16} fontWeight="600" color="#2d3436">
-                              {asset.name}
-                            </Text>
-                            <Text fontSize={20} fontWeight="700" color="#4a7c59">
-                              {formatCurrency(asset.value)}
-                            </Text>
-                          </YStack>
-                          <XStack gap={8}>
-                            <Pressable onPress={() => handleEdit(asset)}>
-                              <Text fontSize={14} color="#1e3a5f">
-                                Edit
-                              </Text>
-                            </Pressable>
-                            <Pressable onPress={() => handleDelete(asset)}>
-                              <Text fontSize={14} color="#c75c5c">
-                                Delete
-                              </Text>
-                            </Pressable>
-                          </XStack>
+                {Object.entries(groupedAssets).map(([category, categoryAssets]) => {
+                  const categoryTotal = categoryTotals[category];
+                  return (
+                    <YStack key={category} gap={12}>
+                      <XStack justifyContent="space-between" alignItems="center">
+                        <Text fontSize={14} fontWeight="600" color="#636e72">
+                          {getAssetCategoryLabel(category as AssetCategory).toUpperCase()}
+                        </Text>
+                        <XStack gap={8} alignItems="center">
+                          <Text fontSize={14} fontWeight="600" color="#4a7c59">
+                            {formatCurrency(categoryTotal.total)}
+                          </Text>
+                          <Text fontSize={12} color="#636e72">
+                            ({formatPercentage(categoryTotal.percentage)})
+                          </Text>
                         </XStack>
-                      </Card>
-                    ))}
-                  </YStack>
-                ))}
+                      </XStack>
+                      {categoryAssets.map((asset) => (
+                        <Card key={asset.id} pressable>
+                          <XStack justifyContent="space-between" alignItems="center">
+                            <YStack flex={1}>
+                              <Text fontSize={16} fontWeight="600" color="#2d3436">
+                                {asset.name}
+                              </Text>
+                              <Text fontSize={20} fontWeight="700" color="#4a7c59">
+                                {formatCurrency(asset.value)}
+                              </Text>
+                            </YStack>
+                            <XStack gap={8}>
+                              <Pressable onPress={() => handleEdit(asset)}>
+                                <Text fontSize={14} color="#1e3a5f">
+                                  Edit
+                                </Text>
+                              </Pressable>
+                              <Pressable onPress={() => handleDelete(asset)}>
+                                <Text fontSize={14} color="#c75c5c">
+                                  Delete
+                                </Text>
+                              </Pressable>
+                            </XStack>
+                          </XStack>
+                        </Card>
+                      ))}
+                    </YStack>
+                  );
+                })}
               </YStack>
             )}
           </Animated.View>

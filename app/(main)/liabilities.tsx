@@ -15,7 +15,7 @@ import { Button, Card, Input, CurrencyInput } from '../../src/shared/components'
 import { useNetWorthStore } from '../../src/features/netWorth/store';
 import { getLiabilityCategoryLabel } from '../../src/features/netWorth/service';
 import { Liability, LiabilityCategory } from '../../src/shared/types';
-import { formatCurrency, formatPercentage } from '../../src/shared/utils';
+import { formatCurrency, formatPercentage, calculatePercentage } from '../../src/shared/utils';
 
 export default function LiabilitiesScreen() {
   const router = useRouter();
@@ -68,6 +68,15 @@ export default function LiabilitiesScreen() {
     return acc;
   }, {} as Record<LiabilityCategory, Liability[]>);
 
+  // Calculate totals and percentages for each category
+  const totalLiabilities = summary?.totalLiabilities ?? 0;
+  const categoryTotals = Object.entries(groupedLiabilities).reduce((acc, [category, categoryLiabilities]) => {
+    const total = categoryLiabilities.reduce((sum, liability) => sum + liability.balance, 0);
+    const percentage = calculatePercentage(total, totalLiabilities);
+    acc[category] = { total, percentage };
+    return acc;
+  }, {} as Record<string, { total: number; percentage: number }>);
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#faf8f5' }}>
       <YStack flex={1}>
@@ -113,46 +122,59 @@ export default function LiabilitiesScreen() {
               </Card>
             ) : (
               <YStack gap={24} paddingBottom={100}>
-                {Object.entries(groupedLiabilities).map(([category, categoryLiabilities]) => (
-                  <YStack key={category} gap={12}>
-                    <Text fontSize={14} fontWeight="600" color="#636e72">
-                      {getLiabilityCategoryLabel(category as LiabilityCategory).toUpperCase()}
-                    </Text>
-                    {categoryLiabilities.map((liability) => (
-                      <Card key={liability.id} pressable>
-                        <XStack justifyContent="space-between" alignItems="center">
-                          <YStack flex={1}>
-                            <Text fontSize={16} fontWeight="600" color="#2d3436">
-                              {liability.name}
-                            </Text>
-                            <XStack gap={8} alignItems="center">
-                              <Text fontSize={20} fontWeight="700" color="#c75c5c">
-                                {formatCurrency(liability.balance)}
-                              </Text>
-                              {liability.interestRate && (
-                                <Text fontSize={12} color="#636e72">
-                                  @ {formatPercentage(liability.interestRate)}
-                                </Text>
-                              )}
-                            </XStack>
-                          </YStack>
-                          <XStack gap={8}>
-                            <Pressable onPress={() => handleEdit(liability)}>
-                              <Text fontSize={14} color="#1e3a5f">
-                                Edit
-                              </Text>
-                            </Pressable>
-                            <Pressable onPress={() => handleDelete(liability)}>
-                              <Text fontSize={14} color="#c75c5c">
-                                Delete
-                              </Text>
-                            </Pressable>
-                          </XStack>
+                {Object.entries(groupedLiabilities).map(([category, categoryLiabilities]) => {
+                  const categoryTotal = categoryTotals[category];
+                  return (
+                    <YStack key={category} gap={12}>
+                      <XStack justifyContent="space-between" alignItems="center">
+                        <Text fontSize={14} fontWeight="600" color="#636e72">
+                          {getLiabilityCategoryLabel(category as LiabilityCategory).toUpperCase()}
+                        </Text>
+                        <XStack gap={8} alignItems="center">
+                          <Text fontSize={14} fontWeight="600" color="#c75c5c">
+                            {formatCurrency(categoryTotal.total)}
+                          </Text>
+                          <Text fontSize={12} color="#636e72">
+                            ({formatPercentage(categoryTotal.percentage)})
+                          </Text>
                         </XStack>
-                      </Card>
-                    ))}
-                  </YStack>
-                ))}
+                      </XStack>
+                      {categoryLiabilities.map((liability) => (
+                        <Card key={liability.id} pressable>
+                          <XStack justifyContent="space-between" alignItems="center">
+                            <YStack flex={1}>
+                              <Text fontSize={16} fontWeight="600" color="#2d3436">
+                                {liability.name}
+                              </Text>
+                              <XStack gap={8} alignItems="center">
+                                <Text fontSize={20} fontWeight="700" color="#c75c5c">
+                                  {formatCurrency(liability.balance)}
+                                </Text>
+                                {liability.interestRate && (
+                                  <Text fontSize={12} color="#636e72">
+                                    @ {formatPercentage(liability.interestRate)}
+                                  </Text>
+                                )}
+                              </XStack>
+                            </YStack>
+                            <XStack gap={8}>
+                              <Pressable onPress={() => handleEdit(liability)}>
+                                <Text fontSize={14} color="#1e3a5f">
+                                  Edit
+                                </Text>
+                              </Pressable>
+                              <Pressable onPress={() => handleDelete(liability)}>
+                                <Text fontSize={14} color="#c75c5c">
+                                  Delete
+                                </Text>
+                              </Pressable>
+                            </XStack>
+                          </XStack>
+                        </Card>
+                      ))}
+                    </YStack>
+                  );
+                })}
               </YStack>
             )}
           </Animated.View>

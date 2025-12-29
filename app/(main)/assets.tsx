@@ -9,6 +9,7 @@ import { useRouter } from 'expo-router';
 import { YStack, XStack, Text, ScrollView } from 'tamagui';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Pressable, Alert, Modal, KeyboardAvoidingView, Platform } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Button, Card, Input, CurrencyInput } from '../../src/shared/components';
@@ -127,12 +128,12 @@ export default function AssetsScreen() {
                         <Text fontSize={14} fontWeight="600" color="#636e72">
                           {getAssetCategoryLabel(category as AssetCategory).toUpperCase()}
                         </Text>
-                        <XStack gap={8} alignItems="center">
-                          <Text fontSize={14} fontWeight="600" color="#4a7c59">
+                        <XStack gap={12} alignItems="center">
+                          <Text fontSize={14} fontWeight="700" color="#4a7c59" width={90} textAlign="right">
                             {formatCurrency(categoryTotal.total)}
                           </Text>
-                          <Text fontSize={12} color="#636e72">
-                            ({formatPercentage(categoryTotal.percentage)})
+                          <Text fontSize={12} color="#636e72" width={45} textAlign="right">
+                            {formatPercentage(categoryTotal.percentage)}
                           </Text>
                         </XStack>
                       </XStack>
@@ -225,8 +226,19 @@ export default function AssetsScreen() {
                   <Text fontSize={20} fontWeight="700" color="#2d3436">
                     Edit Asset
                   </Text>
-                  <Pressable onPress={() => setEditingAsset(null)}>
-                    <Text fontSize={24} color="#636e72">×</Text>
+                  <Pressable
+                    onPress={() => setEditingAsset(null)}
+                    hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+                    style={({ pressed }) => ({
+                      opacity: pressed ? 0.6 : 1,
+                      padding: 8,
+                      backgroundColor: '#f5f6f7',
+                      borderRadius: 20,
+                    })}
+                  >
+                    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#636e72" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <Path d="M18 6L6 18M6 6l12 12" />
+                    </Svg>
                   </Pressable>
                 </XStack>
 

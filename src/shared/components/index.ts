@@ -10,4 +10,7 @@ export { OptionButton } from './OptionButton';
 export { CountInputModal } from './CountInputModal';
 export { MultiItemForm } from './MultiItemForm';
 export { ExistingItemsView } from './ExistingItemsView';
+export { PieChart } from './PieChart';
+export type { PieChartData } from './PieChart';
+export { BreakdownCategoriesModal } from './BreakdownCategoriesModal';
 

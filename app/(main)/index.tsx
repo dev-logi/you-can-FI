@@ -12,10 +12,14 @@ import { Pressable, RefreshControl, Dimensions, NativeScrollEvent, NativeSynthet
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
 import { Button, Card, PieChart, BreakdownCategoriesModal } from '../../src/shared/components';
+import { PlaidLinkButton } from '../../src/features/plaid/components/PlaidLinkButton';
+import { AccountLinkingModal } from '../../src/features/plaid/components/AccountLinkingModal';
 import { useNetWorthStore } from '../../src/features/netWorth/store';
 import { useAuthStore } from '../../src/features/auth/store';
+import { usePlaidStore } from '../../src/features/plaid/store';
 import { formatCurrency, formatPercentage } from '../../src/shared/utils';
 import type { PieChartData } from '../../src/shared/components';
+import type { PlaidAccountInfo } from '../../src/api/services/plaidService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_PADDING = 24;
@@ -35,6 +39,8 @@ export default function DashboardScreen() {
     refresh,
   } = useNetWorthStore();
   const { signOut, user } = useAuthStore();
+  const { refreshConnectedAccounts } = usePlaidStore();
+  const { refresh: refreshNetWorth } = useNetWorthStore();
 
   // Carousel state
   const [activeIndex, setActiveIndex] = useState(0);
@@ -43,10 +49,32 @@ export default function DashboardScreen() {
   // Modal state
   const [showAssetModal, setShowAssetModal] = useState(false);
   const [showLiabilityModal, setShowLiabilityModal] = useState(false);
+  const [showAccountLinkingModal, setShowAccountLinkingModal] = useState(false);
+  const [linkedAccount, setLinkedAccount] = useState<PlaidAccountInfo | null>(null);
 
   const handleLogout = async () => {
     await signOut();
     router.replace('/(auth)/login');
+  };
+
+  const handlePlaidSuccess = (publicToken: string, metadata: any) => {
+    // After successful Plaid connection, show account linking modal
+    if (metadata?.accounts && metadata.accounts.length > 0) {
+      // For now, show linking modal for first account
+      // In future, could show modal for each account
+      setLinkedAccount(metadata.accounts[0]);
+      setShowAccountLinkingModal(true);
+    }
+  };
+
+  const handleAccountLinkingComplete = async () => {
+    setShowAccountLinkingModal(false);
+    setLinkedAccount(null);
+    // Refresh connected accounts and net worth
+    await Promise.all([
+      refreshConnectedAccounts(),
+      refreshNetWorth(),
+    ]);
   };
 
   // Refresh data when screen is focused
@@ -325,24 +353,35 @@ export default function DashboardScreen() {
 
           {/* Quick Actions */}
           <Animated.View entering={FadeInUp.delay(350).springify()}>
-            <XStack gap={12}>
-              <Button
-                flex={1}
-                variant="primary"
-                size="small"
-                onPress={() => router.push('/(main)/add-asset')}
-              >
-                + Add Asset
-              </Button>
-              <Button
-                flex={1}
-                variant="secondary"
-                size="small"
-                onPress={() => router.push('/(main)/add-liability')}
-              >
-                + Add Liability
-              </Button>
-            </XStack>
+            <YStack gap={12}>
+              <XStack gap={12}>
+                <Button
+                  flex={1}
+                  variant="primary"
+                  size="small"
+                  onPress={() => router.push('/(main)/add-asset')}
+                >
+                  + Add Asset
+                </Button>
+                <Button
+                  flex={1}
+                  variant="secondary"
+                  size="small"
+                  onPress={() => router.push('/(main)/add-liability')}
+                >
+                  + Add Liability
+                </Button>
+              </XStack>
+              <PlaidLinkButton
+                onSuccess={handlePlaidSuccess}
+                onError={(error) => {
+                  console.error('[Dashboard] Plaid error:', error);
+                }}
+                onExit={() => {
+                  console.log('[Dashboard] Plaid exited');
+                }}
+              />
+            </YStack>
           </Animated.View>
 
           {/* Assets Section */}

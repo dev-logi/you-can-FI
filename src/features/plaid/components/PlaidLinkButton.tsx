@@ -5,9 +5,9 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Platform } from 'react-native';
 import { Button } from '../../../shared/components';
 import { usePlaidStore } from '../store';
+import { PlaidLinkModal } from './PlaidLinkModal';
 
 interface PlaidLinkButtonProps {
   onSuccess?: (publicToken: string, metadata: any) => void;
@@ -16,8 +16,9 @@ interface PlaidLinkButtonProps {
 }
 
 export function PlaidLinkButton({ onSuccess, onError, onExit }: PlaidLinkButtonProps) {
-  const { createLinkToken, exchangePublicToken, isLoading, error } = usePlaidStore();
+  const { createLinkToken, isLoading } = usePlaidStore();
   const [linkToken, setLinkToken] = useState<string | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
     // Pre-fetch link token when component mounts
@@ -36,18 +37,8 @@ export function PlaidLinkButton({ onSuccess, onError, onExit }: PlaidLinkButtonP
         setLinkToken(token);
       }
 
-      // For web, we'll use Plaid Link web SDK
-      // For native, we'll use react-native-plaid-link-sdk
-      if (Platform.OS === 'web') {
-        // Web implementation using Plaid Link web SDK
-        // This will be implemented when we add the web SDK
-        console.log('[PlaidLinkButton] Web Plaid Link not yet implemented');
-        onError?.({ message: 'Web Plaid Link not yet implemented' });
-      } else {
-        // Native implementation using react-native-plaid-link-sdk
-        // This will be implemented when we add the native SDK
-        console.log('[PlaidLinkButton] Native Plaid Link not yet implemented');
-        onError?.({ message: 'Native Plaid Link not yet implemented' });
+      if (token) {
+        setModalVisible(true);
       }
     } catch (err) {
       console.error('[PlaidLinkButton] Error:', err);
@@ -55,15 +46,40 @@ export function PlaidLinkButton({ onSuccess, onError, onExit }: PlaidLinkButtonP
     }
   };
 
+  const handleSuccess = (publicToken: string, metadata: any) => {
+    setModalVisible(false);
+    onSuccess?.(publicToken, metadata);
+  };
+
+  const handleError = (error: any) => {
+    setModalVisible(false);
+    onError?.(error);
+  };
+
+  const handleExit = () => {
+    setModalVisible(false);
+    onExit?.();
+  };
+
   return (
-    <Button
-      variant="primary"
-      onPress={handlePress}
-      loading={isLoading}
-      disabled={isLoading || !linkToken}
-    >
-      Connect Bank Account
-    </Button>
+    <>
+      <Button
+        variant="primary"
+        onPress={handlePress}
+        loading={isLoading}
+        disabled={isLoading || !linkToken}
+      >
+        Connect Bank Account
+      </Button>
+
+      <PlaidLinkModal
+        visible={modalVisible}
+        linkToken={linkToken}
+        onSuccess={handleSuccess}
+        onError={handleError}
+        onExit={handleExit}
+      />
+    </>
   );
 }
 

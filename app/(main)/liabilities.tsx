@@ -14,13 +14,15 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Button, Card, Input, CurrencyInput } from '../../src/shared/components';
 import { useNetWorthStore } from '../../src/features/netWorth/store';
+import { usePlaidStore } from '../../src/features/plaid/store';
 import { getLiabilityCategoryLabel } from '../../src/features/netWorth/service';
 import { Liability, LiabilityCategory } from '../../src/shared/types';
 import { formatCurrency, formatPercentage, calculatePercentage } from '../../src/shared/utils';
 
 export default function LiabilitiesScreen() {
   const router = useRouter();
-  const { liabilities, updateLiability, deleteLiability, isLoading, summary } = useNetWorthStore();
+  const { liabilities, updateLiability, deleteLiability, isLoading, summary, refresh } = useNetWorthStore();
+  const { syncAccount, isLoading: isPlaidLoading } = usePlaidStore();
   const [editingLiability, setEditingLiability] = useState<Liability | null>(null);
   const [editName, setEditName] = useState('');
   const [editBalance, setEditBalance] = useState(0);
@@ -58,6 +60,28 @@ export default function LiabilitiesScreen() {
         },
       ]
     );
+  };
+
+  const handleSync = async (liability: Liability) => {
+    if (!liability.connectedAccountId) return;
+    try {
+      await syncAccount(liability.connectedAccountId);
+      // Refresh net worth data after sync
+      await refresh();
+    } catch (error) {
+      console.error('[LiabilitiesScreen] Sync error:', error);
+    }
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'Never';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
 
   // Group liabilities by category
@@ -142,35 +166,70 @@ export default function LiabilitiesScreen() {
                       </XStack>
                       {categoryLiabilities.map((liability) => (
                         <Card key={liability.id} pressable>
-                          <XStack justifyContent="space-between" alignItems="center">
-                            <YStack flex={1}>
-                              <Text fontSize={16} fontWeight="600" color="#2d3436">
-                                {liability.name}
-                              </Text>
-                              <XStack gap={8} alignItems="center">
-                                <Text fontSize={20} fontWeight="700" color="#c75c5c">
-                                  {formatCurrency(liability.balance)}
-                                </Text>
-                                {liability.interestRate && (
-                                  <Text fontSize={12} color="#636e72">
-                                    @ {formatPercentage(liability.interestRate)}
+                          <YStack gap={12}>
+                            <XStack justifyContent="space-between" alignItems="center">
+                              <YStack flex={1}>
+                                <XStack gap={8} alignItems="center">
+                                  <Text fontSize={16} fontWeight="600" color="#2d3436">
+                                    {liability.name}
+                                  </Text>
+                                  {liability.isConnected && (
+                                    <YStack
+                                      paddingHorizontal={6}
+                                      paddingVertical={2}
+                                      borderRadius={8}
+                                      backgroundColor="#e8f5e9"
+                                    >
+                                      <Text fontSize={10} fontWeight="600" color="#4a7c59">
+                                        SYNCED
+                                      </Text>
+                                    </YStack>
+                                  )}
+                                </XStack>
+                                <XStack gap={8} alignItems="center">
+                                  <Text fontSize={20} fontWeight="700" color="#c75c5c">
+                                    {formatCurrency(liability.balance)}
+                                  </Text>
+                                  {liability.interestRate && (
+                                    <Text fontSize={12} color="#636e72">
+                                      @ {formatPercentage(liability.interestRate)}
+                                    </Text>
+                                  )}
+                                </XStack>
+                                {liability.isConnected && liability.lastSyncedAt && (
+                                  <Text fontSize={11} color="#636e72">
+                                    Last synced: {formatDate(liability.lastSyncedAt)}
                                   </Text>
                                 )}
+                              </YStack>
+                              <XStack gap={8}>
+                                {liability.isConnected && liability.connectedAccountId && (
+                                  <Pressable
+                                    onPress={() => handleSync(liability)}
+                                    disabled={isPlaidLoading}
+                                  >
+                                    <Text
+                                      fontSize={14}
+                                      color="#1e3a5f"
+                                      opacity={isPlaidLoading ? 0.5 : 1}
+                                    >
+                                      {isPlaidLoading ? 'Syncing...' : 'Sync'}
+                                    </Text>
+                                  </Pressable>
+                                )}
+                                <Pressable onPress={() => handleEdit(liability)}>
+                                  <Text fontSize={14} color="#1e3a5f">
+                                    Edit
+                                  </Text>
+                                </Pressable>
+                                <Pressable onPress={() => handleDelete(liability)}>
+                                  <Text fontSize={14} color="#c75c5c">
+                                    Delete
+                                  </Text>
+                                </Pressable>
                               </XStack>
-                            </YStack>
-                            <XStack gap={8}>
-                              <Pressable onPress={() => handleEdit(liability)}>
-                                <Text fontSize={14} color="#1e3a5f">
-                                  Edit
-                                </Text>
-                              </Pressable>
-                              <Pressable onPress={() => handleDelete(liability)}>
-                                <Text fontSize={14} color="#c75c5c">
-                                  Delete
-                                </Text>
-                              </Pressable>
                             </XStack>
-                          </XStack>
+                          </YStack>
                         </Card>
                       ))}
                     </YStack>

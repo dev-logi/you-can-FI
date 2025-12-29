@@ -40,6 +40,10 @@ export interface Asset {
   value: number;
   createdAt: string; // ISO 8601 format
   updatedAt: string; // ISO 8601 format
+  // Plaid connection fields
+  connectedAccountId?: string;
+  isConnected?: boolean;
+  lastSyncedAt?: string;
 }
 
 export interface Liability {
@@ -50,6 +54,10 @@ export interface Liability {
   interestRate?: number; // Optional, percentage (e.g., 6.5 for 6.5%)
   createdAt: string;
   updatedAt: string;
+  // Plaid connection fields
+  connectedAccountId?: string;
+  isConnected?: boolean;
+  lastSyncedAt?: string;
 }
 
 // =============================================================================

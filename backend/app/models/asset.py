@@ -31,7 +31,7 @@ class Asset(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     value: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     
-    # Plaid connection fields
+    # Plaid integration fields
     connected_account_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True, index=True)
     is_connected: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     last_synced_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)

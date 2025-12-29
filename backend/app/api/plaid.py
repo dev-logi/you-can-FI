@@ -65,8 +65,11 @@ def exchange_public_token(
         plaid_accounts = plaid_service.get_accounts(access_token)
         
         # Get item/institution info (simplified - you may need to enhance this)
+        # For Phase 1, we'll use a placeholder. In Phase 2, we can fetch actual institution name
         item_info = plaid_service.get_item(access_token)
-        institution_name = item_info.get('institution_id', 'Unknown') if item_info else 'Unknown'
+        institution_id = item_info.get('institution_id', '') if item_info else ''
+        # Use institution_id as name for now (can be enhanced later with institution API)
+        institution_name = institution_id if institution_id else 'Bank'
         
         # Create connected accounts and return account info for linking
         account_infos = []

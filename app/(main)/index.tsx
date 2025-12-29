@@ -12,13 +12,13 @@ import { Pressable, RefreshControl, Dimensions, NativeScrollEvent, NativeSynthet
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
 import { Button, Card, PieChart, BreakdownCategoriesModal } from '../../src/shared/components';
-import { PlaidLinkButton } from '../../src/features/plaid/components/PlaidLinkButton';
-import { AccountLinkingModal } from '../../src/features/plaid/components/AccountLinkingModal';
 import { useNetWorthStore } from '../../src/features/netWorth/store';
 import { useAuthStore } from '../../src/features/auth/store';
-import { usePlaidStore } from '../../src/features/plaid/store';
 import { formatCurrency, formatPercentage } from '../../src/shared/utils';
 import type { PieChartData } from '../../src/shared/components';
+import { PlaidLinkButton } from '../../src/features/plaid/components/PlaidLinkButton';
+import { AccountLinkingModal } from '../../src/features/plaid/components/AccountLinkingModal';
+import { usePlaidStore } from '../../src/features/plaid/store';
 import type { PlaidAccountInfo } from '../../src/api/services/plaidService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -39,8 +39,6 @@ export default function DashboardScreen() {
     refresh,
   } = useNetWorthStore();
   const { signOut, user } = useAuthStore();
-  const { refreshConnectedAccounts } = usePlaidStore();
-  const { refresh: refreshNetWorth } = useNetWorthStore();
 
   // Carousel state
   const [activeIndex, setActiveIndex] = useState(0);
@@ -50,31 +48,14 @@ export default function DashboardScreen() {
   const [showAssetModal, setShowAssetModal] = useState(false);
   const [showLiabilityModal, setShowLiabilityModal] = useState(false);
   const [showAccountLinkingModal, setShowAccountLinkingModal] = useState(false);
-  const [linkedAccount, setLinkedAccount] = useState<PlaidAccountInfo | null>(null);
+  const [plaidAccountToLink, setPlaidAccountToLink] = useState<PlaidAccountInfo | null>(null);
+  
+  // Plaid store
+  const { exchangePublicToken } = usePlaidStore();
 
   const handleLogout = async () => {
     await signOut();
     router.replace('/(auth)/login');
-  };
-
-  const handlePlaidSuccess = (publicToken: string, metadata: any) => {
-    // After successful Plaid connection, show account linking modal
-    if (metadata?.accounts && metadata.accounts.length > 0) {
-      // For now, show linking modal for first account
-      // In future, could show modal for each account
-      setLinkedAccount(metadata.accounts[0]);
-      setShowAccountLinkingModal(true);
-    }
-  };
-
-  const handleAccountLinkingComplete = async () => {
-    setShowAccountLinkingModal(false);
-    setLinkedAccount(null);
-    // Refresh connected accounts and net worth
-    await Promise.all([
-      refreshConnectedAccounts(),
-      refreshNetWorth(),
-    ]);
   };
 
   // Refresh data when screen is focused
@@ -351,37 +332,51 @@ export default function DashboardScreen() {
             </Animated.View>
           )}
 
+          {/* Connect Bank Account Button */}
+          <Animated.View entering={FadeInUp.delay(300).springify()}>
+            <PlaidLinkButton
+              onSuccess={async (publicToken: string, metadata: any) => {
+                console.log('[Dashboard] Plaid Link Success:', publicToken, metadata);
+                try {
+                  const linkedAccount = await exchangePublicToken(publicToken);
+                  if (linkedAccount && linkedAccount.length > 0) {
+                    setPlaidAccountToLink(linkedAccount[0]);
+                    setShowAccountLinkingModal(true);
+                  }
+                  refresh(); // Refresh net worth data after linking
+                } catch (error) {
+                  console.error('[Dashboard] Error exchanging public token:', error);
+                }
+              }}
+              onError={(error: any) => {
+                console.error('[Dashboard] Plaid Link Error:', error);
+              }}
+              onExit={() => {
+                console.log('[Dashboard] Plaid Link exited');
+              }}
+            />
+          </Animated.View>
+
           {/* Quick Actions */}
           <Animated.View entering={FadeInUp.delay(350).springify()}>
-            <YStack gap={12}>
-              <XStack gap={12}>
-                <Button
-                  flex={1}
-                  variant="primary"
-                  size="small"
-                  onPress={() => router.push('/(main)/add-asset')}
-                >
-                  + Add Asset
-                </Button>
-                <Button
-                  flex={1}
-                  variant="secondary"
-                  size="small"
-                  onPress={() => router.push('/(main)/add-liability')}
-                >
-                  + Add Liability
-                </Button>
-              </XStack>
-              <PlaidLinkButton
-                onSuccess={handlePlaidSuccess}
-                onError={(error) => {
-                  console.error('[Dashboard] Plaid error:', error);
-                }}
-                onExit={() => {
-                  console.log('[Dashboard] Plaid exited');
-                }}
-              />
-            </YStack>
+            <XStack gap={12}>
+              <Button
+                flex={1}
+                variant="primary"
+                size="small"
+                onPress={() => router.push('/(main)/add-asset')}
+              >
+                + Add Asset
+              </Button>
+              <Button
+                flex={1}
+                variant="secondary"
+                size="small"
+                onPress={() => router.push('/(main)/add-liability')}
+              >
+                + Add Liability
+              </Button>
+            </XStack>
           </Animated.View>
 
           {/* Assets Section */}
@@ -536,15 +531,18 @@ export default function DashboardScreen() {
         valueColor="#c75c5c"
       />
 
-      {/* Account Linking Modal */}
       <AccountLinkingModal
         visible={showAccountLinkingModal}
-        account={linkedAccount}
+        account={plaidAccountToLink}
         onClose={() => {
           setShowAccountLinkingModal(false);
-          setLinkedAccount(null);
+          setPlaidAccountToLink(null);
         }}
-        onComplete={handleAccountLinkingComplete}
+        onComplete={() => {
+          setShowAccountLinkingModal(false);
+          setPlaidAccountToLink(null);
+          refresh(); // Refresh net worth data after linking
+        }}
       />
     </SafeAreaView>
   );

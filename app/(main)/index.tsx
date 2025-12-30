@@ -228,7 +228,7 @@ export default function DashboardScreen() {
                           <Text fontSize={18} fontWeight="700" color="#2d3436">
                             {card.type === 'asset' ? 'Asset Breakdown' : 'Liability Breakdown'}
                           </Text>
-                          
+
                           <XStack justifyContent="center" paddingVertical={8}>
                             <PieChart
                               data={card.data}
@@ -237,7 +237,7 @@ export default function DashboardScreen() {
                               showPercentages={true}
                             />
                           </XStack>
-                          
+
                           <YStack gap={8} marginTop={8}>
                             {card.data.slice(0, 5).map((item, index) => (
                               <XStack
@@ -257,15 +257,22 @@ export default function DashboardScreen() {
                                     {item.label}
                                   </Text>
                                 </XStack>
-                                <XStack gap={8} alignItems="center">
+                                <XStack gap={4} alignItems="center">
                                   <Text
                                     fontSize={14}
-                                    fontWeight="600"
+                                    fontWeight="700"
                                     color={card.type === 'asset' ? '#4a7c59' : '#c75c5c'}
+                                    width={85}
+                                    textAlign="right"
                                   >
                                     {formatCurrency(item.value)}
                                   </Text>
-                                  <Text fontSize={12} color="#636e72" minWidth={45}>
+                                  <Text
+                                    fontSize={12}
+                                    color="#636e72"
+                                    width={42}
+                                    textAlign="right"
+                                  >
                                     {formatPercentage(item.percentage)}
                                   </Text>
                                 </XStack>

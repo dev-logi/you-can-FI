@@ -70,7 +70,7 @@ export function PieChart({
 
     // Calculate label position (middle of arc)
     const labelAngle = (startAngle + angle / 2) * (Math.PI / 180);
-    const labelRadius = radius * 0.7;
+    const labelRadius = radius * 0.65;
     const labelX = center + labelRadius * Math.cos(labelAngle);
     const labelY = center + labelRadius * Math.sin(labelAngle);
 
@@ -81,7 +81,10 @@ export function PieChart({
       percentage: item.percentage,
       labelX,
       labelY,
-      showLabel: percentage > 5, // Only show label if slice is > 5%
+      // Only show label if slice is >= 12% to avoid clutter
+      showLabel: percentage >= 12,
+      // Larger font for better readability
+      fontSize: percentage >= 20 ? 14 : 12,
     };
   });
 
@@ -108,8 +111,9 @@ export function PieChart({
                     key={`label-${index}`}
                     x={path.labelX}
                     y={path.labelY}
-                    fontSize={12}
+                    fontSize={path.fontSize}
                     fill="#ffffff"
+                    fontWeight="700"
                     textAnchor="middle"
                     alignmentBaseline="middle"
                   >

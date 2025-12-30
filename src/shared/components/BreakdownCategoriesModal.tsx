@@ -7,7 +7,7 @@
 import React from 'react';
 import { Modal, ScrollView, Pressable, KeyboardAvoidingView, Platform, StatusBar } from 'react-native';
 import { YStack, XStack, Text } from 'tamagui';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Card } from './Card';

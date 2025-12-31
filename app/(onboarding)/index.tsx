@@ -12,7 +12,7 @@ import { YStack, Text, XStack } from 'tamagui';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
-import { Button } from '../../src/shared/components';
+import { Button, Card } from '../../src/shared/components';
 import { useOnboardingStore } from '../../src/features/onboarding/store';
 import { QUESTION_IDS } from '../../src/features/onboarding/engine';
 
@@ -39,56 +39,46 @@ export default function WelcomeScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <YStack alignItems="center" gap={32} justifyContent="center" minHeight={400}>
-            <Animated.View entering={FadeInDown.delay(200).springify()}>
-              <YStack
-                width={100}
-                height={100}
-                borderRadius={50}
-                backgroundColor="#1e3a5f"
-                alignItems="center"
-                justifyContent="center"
-              >
-                <Text fontSize={48}>💰</Text>
-              </YStack>
-            </Animated.View>
+            <Animated.View entering={FadeInDown.delay(200).springify()} style={{ width: '100%' }}>
+              <YStack gap={24}>
+                <YStack gap={8} alignItems="center">
+                  <Text fontSize={32} fontWeight="700" color="#2d3436" fontFamily="$heading">
+                    Welcome! 👋
+                  </Text>
+                  <Text fontSize={16} color="#636e72">
+                    Let's discover your net worth
+                  </Text>
+                </YStack>
 
-            <Animated.View entering={FadeInDown.delay(400).springify()}>
-              <YStack gap={16} alignItems="center" paddingHorizontal={8}>
-                <Text
-                  fontSize={32}
-                  fontWeight="700"
-                  color="#2d3436"
-                  textAlign="center"
-                  fontFamily="$heading"
-                >
-                  You Can FI
-                </Text>
-                <Text
-                  fontSize={18}
-                  color="#636e72"
-                  textAlign="center"
-                  lineHeight={26}
-                  maxWidth={300}
-                >
-                  Let's get a clear picture of your finances and track your path to financial independence.
-                </Text>
-              </YStack>
-            </Animated.View>
+                <Card padding={24}>
+                  <YStack alignItems="center" gap={24}>
+                    <Text fontSize={70}>💰</Text>
 
-            <Animated.View entering={FadeInUp.delay(600).springify()}>
-              <YStack gap={12} alignItems="center">
-                <XStack gap={8} alignItems="center">
-                  <Text fontSize={14} color="#4a7c59">✓</Text>
-                  <Text fontSize={14} color="#636e72">Track your net worth</Text>
-                </XStack>
-                <XStack gap={8} alignItems="center">
-                  <Text fontSize={14} color="#4a7c59">✓</Text>
-                  <Text fontSize={14} color="#636e72">Monitor assets & liabilities</Text>
-                </XStack>
-                <XStack gap={8} alignItems="center">
-                  <Text fontSize={14} color="#4a7c59">✓</Text>
-                  <Text fontSize={14} color="#636e72">Private & offline-first</Text>
-                </XStack>
+                    <YStack gap={8} alignItems="center">
+                      <Text fontSize={18} fontWeight="600" color="#2d3436">
+                        Your Financial Snapshot
+                      </Text>
+                      <Text fontSize={14} color="#636e72" textAlign="center">
+                        Quick discovery process to understand your complete financial picture.
+                      </Text>
+                    </YStack>
+
+                    <YStack width="100%" gap={8}>
+                      <XStack backgroundColor="#f8f9fa" padding={12} borderRadius={8} gap={10} alignItems="center">
+                        <Text fontSize={14}>✅</Text>
+                        <Text fontSize={14} color="#2d3436" fontWeight="500">Track your assets</Text>
+                      </XStack>
+                      <XStack backgroundColor="#f8f9fa" padding={12} borderRadius={8} gap={10} alignItems="center">
+                        <Text fontSize={14}>✅</Text>
+                        <Text fontSize={14} color="#2d3436" fontWeight="500">Monitor liabilities</Text>
+                      </XStack>
+                      <XStack backgroundColor="#f8f9fa" padding={12} borderRadius={8} gap={10} alignItems="center">
+                        <Text fontSize={14}>✅</Text>
+                        <Text fontSize={14} color="#2d3436" fontWeight="500">Calculate net worth</Text>
+                      </XStack>
+                    </YStack>
+                  </YStack>
+                </Card>
               </YStack>
             </Animated.View>
           </YStack>

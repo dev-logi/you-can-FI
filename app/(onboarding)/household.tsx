@@ -6,11 +6,12 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'expo-router';
-import { YStack, Text } from 'tamagui';
+import { Pressable } from 'react-native';
+import { YStack, Text, XStack } from 'tamagui';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { Button, ProgressBar, OptionButton } from '../../src/shared/components';
+import { Button, ProgressBar, Card } from '../../src/shared/components';
 import { useOnboardingStore } from '../../src/features/onboarding/store';
 import { QUESTION_IDS, QUESTIONS } from '../../src/features/onboarding/engine';
 import { HouseholdType } from '../../src/shared/types';
@@ -60,16 +61,40 @@ export default function HouseholdScreen() {
 
           {/* Options */}
           <Animated.View entering={FadeInDown.delay(300).springify()}>
-            <YStack gap={12}>
-              {question.options?.map((option) => (
-                <OptionButton
-                  key={option.id}
-                  label={option.label}
-                  selected={selected === option.value}
-                  onPress={() => setSelected(option.value as HouseholdType)}
-                  radio
-                />
-              ))}
+            <YStack gap={16}>
+              {/* Just Me Card */}
+              <Pressable onPress={() => setSelected('individual')}>
+                <Card
+                  variant={selected === 'individual' ? 'highlighted' : 'default'}
+                  padding={20}
+                >
+                  <XStack alignItems="center" gap={16}>
+                    <Text fontSize={36}>👤</Text>
+                    <YStack flex={1}>
+                      <Text fontSize={18} fontWeight="600" color="#2d3436">Just Me</Text>
+                      <Text fontSize={14} color="#636e72">Individual</Text>
+                    </YStack>
+                    <Text fontSize={24} color="#667eea">→</Text>
+                  </XStack>
+                </Card>
+              </Pressable>
+
+              {/* Couple Card */}
+              <Pressable onPress={() => setSelected('couple')}>
+                <Card
+                  variant={selected === 'couple' ? 'highlighted' : 'default'}
+                  padding={20}
+                >
+                  <XStack alignItems="center" gap={16}>
+                    <Text fontSize={36}>👥</Text>
+                    <YStack flex={1}>
+                      <Text fontSize={18} fontWeight="600" color="#2d3436">Couple</Text>
+                      <Text fontSize={14} color="#636e72">Joint finances</Text>
+                    </YStack>
+                    <Text fontSize={24} color="#667eea">→</Text>
+                  </XStack>
+                </Card>
+              </Pressable>
             </YStack>
           </Animated.View>
         </YStack>

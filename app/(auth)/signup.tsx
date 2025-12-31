@@ -10,6 +10,7 @@ import { YStack, XStack, Text, ScrollView } from 'tamagui';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Pressable, KeyboardAvoidingView, Platform } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { Button, Input, Card } from '@/shared/components';
 import { useAuthStore } from '@/features/auth/store';
@@ -70,105 +71,114 @@ export default function SignUpScreen() {
           break;
         }
       }
-      
+
       if (!sessionAvailable) {
         console.warn('[SignUp] No session available after signup - will be set by auth state listener');
       }
-      
+
       // Navigation will be handled by root layout when auth state changes
       router.replace('/(onboarding)');
     }
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }}>
+    <SafeAreaView style={{ flex: 1 }}>
+      <LinearGradient
+        colors={['#667eea', '#764ba2']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ flex: 1, position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
+      />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 20}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <ScrollView
           flex={1}
-          contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           <Animated.View entering={FadeInDown.delay(100).springify()}>
-            <YStack gap={24} marginTop={40}>
-              <YStack gap={8}>
-                <Text fontSize={32} fontWeight="700" color="#2d3436" fontFamily="$heading">
+            <YStack gap={32} alignItems="center">
+              {/* Header - Outside Card */}
+              <YStack gap={8} alignItems="center">
+                <Text fontSize={32} fontWeight="700" color="white" fontFamily="$heading" textAlign="center">
                   Create Account
                 </Text>
-                <Text fontSize={16} color="#636e72">
+                <Text fontSize={16} color="rgba(255,255,255,0.9)" textAlign="center">
                   Sign up to start tracking your finances
                 </Text>
               </YStack>
 
-              <YStack gap={20} marginTop={24}>
-                <Input
-                  label="Email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                />
+              {/* Card - White Background */}
+              <Card width="100%" padding={24} borderRadius={16} backgroundColor="white" shadowColor="rgba(0,0,0,0.2)" shadowRadius={20} shadowOpacity={0.5}>
+                <YStack gap={20}>
+                  <Input
+                    label="Email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                  />
 
-                <Input
-                  label="Password"
-                  placeholder="Create a password"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  autoCapitalize="none"
-                  autoComplete="password-new"
-                  helperText="Must be at least 6 characters"
-                />
+                  <Input
+                    label="Password"
+                    placeholder="Create a password"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    autoComplete="password-new"
+                    helperText="Must be at least 6 characters"
+                  />
 
-                <Input
-                  label="Confirm Password"
-                  placeholder="Confirm your password"
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  secureTextEntry
-                  autoCapitalize="none"
-                  autoComplete="password-new"
-                />
-              </YStack>
+                  <Input
+                    label="Confirm Password"
+                    placeholder="Confirm your password"
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    autoComplete="password-new"
+                  />
 
-              {(localError || error) && (
-                <Card variant="warning">
-                  <Text color="#d4a84b" fontSize={14}>
-                    {localError || error}
-                  </Text>
-                </Card>
-              )}
-
-              <Animated.View entering={FadeInDown.delay(200).springify()}>
-                <YStack gap={16} marginTop={8}>
-                  <Button
-                    variant="primary"
-                    fullWidth
-                    onPress={handleSignUp}
-                    loading={isLoading}
-                    disabled={!email || !password || !confirmPassword}
-                  >
-                    Create Account
-                  </Button>
-
-                  <XStack justifyContent="center" alignItems="center" gap={8}>
-                    <Text fontSize={14} color="#636e72">
-                      Already have an account?
-                    </Text>
-                    <Pressable onPress={() => router.push('/(auth)/login')}>
-                      <Text fontSize={14} color="#1e3a5f" fontWeight="600">
-                        Sign In
+                  {(localError || error) && (
+                    <YStack padding={12} backgroundColor="#fff4f4" borderRadius={8} borderWidth={1} borderColor="#ffcccc">
+                      <Text color="#c75c5c" fontSize={14}>
+                        {localError || error}
                       </Text>
-                    </Pressable>
-                  </XStack>
+                    </YStack>
+                  )}
+
+                  <YStack gap={12} marginTop={8}>
+                    <Button
+                      variant="primary"
+                      fullWidth
+                      onPress={handleSignUp}
+                      loading={isLoading}
+                      disabled={!email || !password || !confirmPassword}
+                      style={{ backgroundColor: '#1e3a5f' }}
+                    >
+                      Create Account
+                    </Button>
+
+                    <XStack justifyContent="center" alignItems="center" gap={8}>
+                      <Text fontSize={14} color="#636e72">
+                        Already have an account?
+                      </Text>
+                      <Pressable onPress={() => router.push('/(auth)/login')}>
+                        <Text fontSize={14} color="#1e3a5f" fontWeight="600">
+                          Sign In
+                        </Text>
+                      </Pressable>
+                    </XStack>
+                  </YStack>
                 </YStack>
-              </Animated.View>
+              </Card>
             </YStack>
           </Animated.View>
         </ScrollView>

@@ -37,6 +37,7 @@ export default function OnboardingLayout() {
       <Stack.Screen name="liabilities/student-loans" />
       <Stack.Screen name="liabilities/other" />
       <Stack.Screen name="tasks" />
+      <Stack.Screen name="count-input" />
       <Stack.Screen name="review" />
     </Stack>
   );

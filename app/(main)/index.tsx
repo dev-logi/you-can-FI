@@ -196,8 +196,8 @@ export default function DashboardScreen() {
             </Card>
           </Animated.View>
 
-          {/* Breakdown Cards Carousel */}
-          {breakdownCards.length > 0 && (
+          {/* Breakdown Cards Carousel - HIDDEN TEMPORARILY */}
+          {false && breakdownCards.length > 0 && (
             <Animated.View entering={FadeInUp.delay(250).springify()}>
               <YStack gap={16}>
                 {/* Carousel */}
@@ -504,4 +504,3 @@ export default function DashboardScreen() {
     </SafeAreaView>
   );
 }
-

@@ -10,43 +10,41 @@ import { XStack, Text, styled } from 'tamagui';
 import { Pressable } from 'react-native';
 
 const Container = styled(XStack, {
-  backgroundColor: '#ffffff',
-  borderWidth: 2,
-  borderColor: '#e0ddd8',
-  borderRadius: 12,
-  padding: 16,
+  backgroundColor: '#f8f9fa',
+  borderRadius: 10,
+  padding: 14,
   alignItems: 'center',
   gap: 12,
+  marginBottom: 8,
 
   variants: {
     selected: {
       true: {
-        borderColor: '#1e3a5f',
-        backgroundColor: 'rgba(30, 58, 95, 0.05)',
+        backgroundColor: '#e9ecef',
       },
     },
   } as const,
 });
 
 const Checkbox = styled(XStack, {
-  width: 24,
-  height: 24,
-  borderRadius: 6,
+  width: 20,
+  height: 20,
+  borderRadius: 5,
   borderWidth: 2,
-  borderColor: '#e0ddd8',
+  borderColor: '#667eea',
   alignItems: 'center',
   justifyContent: 'center',
 
   variants: {
     selected: {
       true: {
-        borderColor: '#1e3a5f',
-        backgroundColor: '#1e3a5f',
+        borderColor: '#667eea',
+        backgroundColor: '#667eea',
       },
     },
     radio: {
       true: {
-        borderRadius: 12,
+        borderRadius: 10,
       },
     },
   } as const,

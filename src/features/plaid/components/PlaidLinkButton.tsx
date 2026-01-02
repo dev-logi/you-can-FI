@@ -36,28 +36,37 @@ export function PlaidLinkButton({ onSuccess, onError, onExit }: PlaidLinkButtonP
         setError('Unable to connect to Plaid. Please try again.');
       }
     } catch (err: any) {
-      console.error('[PlaidLinkButton] Error:', err);
+      console.error('[PlaidLinkButton] Full error object:', err);
+      console.error('[PlaidLinkButton] Error detail:', err?.detail);
+      console.error('[PlaidLinkButton] Error message:', err?.message);
       
       // Extract user-friendly error message
       let errorMessage = 'Failed to connect to Plaid';
       
       if (err?.detail) {
         errorMessage = err.detail;
-        // Check for Plaid-specific errors
-        if (errorMessage.includes('INVALID_CONFIGURATION') || 
-            errorMessage.includes('link token can only be configured')) {
-          errorMessage = 'Please try again. If the problem persists, refresh the page.';
-        }
+        // Log the actual error for debugging
+        console.log('[PlaidLinkButton] Using error detail:', errorMessage);
       } else if (err?.message) {
         errorMessage = err.message;
+        console.log('[PlaidLinkButton] Using error message:', errorMessage);
       } else if (typeof err === 'string') {
         errorMessage = err;
+      } else {
+        // Try to extract from nested error
+        const nestedError = err?.error || err?.response?.data?.detail || err?.body?.detail;
+        if (nestedError) {
+          errorMessage = nestedError;
+          console.log('[PlaidLinkButton] Using nested error:', errorMessage);
+        }
       }
       
       // Check for specific error about missing env vars
       if (errorMessage.includes('PLAID_CLIENT_ID') || errorMessage.includes('PLAID_SECRET')) {
         errorMessage = 'Plaid is not configured. Please contact support.';
       }
+      // Don't replace INVALID_CONFIGURATION errors - show the actual error
+      // The backend now returns detailed error messages that should be shown
       
       setError(errorMessage);
       onError?.(err);

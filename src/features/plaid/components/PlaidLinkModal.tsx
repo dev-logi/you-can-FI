@@ -40,66 +40,104 @@ export function PlaidLinkModal({
   onExit,
 }: PlaidLinkModalProps) {
   const webViewRef = useRef<WebView>(null);
+  const linkHandlerRef = useRef<any>(null); // Store Plaid Link handler
   const { exchangePublicToken } = usePlaidStore();
 
   useEffect(() => {
-    if (!visible || !linkToken) return;
+    if (!visible || !linkToken) {
+      // Clean up when modal closes
+      if (linkHandlerRef.current) {
+        try {
+          linkHandlerRef.current.destroy?.();
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+        linkHandlerRef.current = null;
+      }
+      return;
+    }
 
-    // Inject Plaid Link script when WebView loads
+    // Only create Plaid Link once per token
     const plaidLinkScript = `
       (function() {
-        if (window.Plaid) {
-          return; // Already loaded
+        // Clean up any existing Plaid Link instance
+        if (window.plaidLinkHandler) {
+          try {
+            window.plaidLinkHandler.destroy();
+          } catch (e) {
+            // Ignore cleanup errors
+          }
+          window.plaidLinkHandler = null;
         }
         
-        // Load Plaid Link script
-        const script = document.createElement('script');
-        script.src = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js';
-        script.onload = function() {
+        // Load Plaid Link script if not already loaded
+        if (!window.Plaid) {
+          const script = document.createElement('script');
+          script.src = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js';
+          script.onload = function() {
+            initializePlaidLink();
+          };
+          script.onerror = function() {
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'PLAID_ERROR',
+              error: 'Failed to load Plaid Link script'
+            }));
+          };
+          document.head.appendChild(script);
+        } else {
+          // Script already loaded, initialize immediately
+          initializePlaidLink();
+        }
+        
+        function initializePlaidLink() {
           if (window.Plaid && window.Plaid.create) {
-            const linkHandler = window.Plaid.create({
-              token: '${linkToken}',
-              onSuccess: function(publicToken, metadata) {
-                window.ReactNativeWebView.postMessage(JSON.stringify({
-                  type: 'PLAID_SUCCESS',
-                  publicToken: publicToken,
-                  metadata: metadata
-                }));
-              },
-              onExit: function(err, metadata) {
-                window.ReactNativeWebView.postMessage(JSON.stringify({
-                  type: 'PLAID_EXIT',
-                  error: err,
-                  metadata: metadata
-                }));
-              },
-              onEvent: function(eventName, metadata) {
-                window.ReactNativeWebView.postMessage(JSON.stringify({
-                  type: 'PLAID_EVENT',
-                  eventName: eventName,
-                  metadata: metadata
-                }));
-              }
-            });
-            
-            // Open Link
-            linkHandler.open();
+            try {
+              window.plaidLinkHandler = window.Plaid.create({
+                token: '${linkToken}',
+                onSuccess: function(publicToken, metadata) {
+                  window.ReactNativeWebView.postMessage(JSON.stringify({
+                    type: 'PLAID_SUCCESS',
+                    publicToken: publicToken,
+                    metadata: metadata
+                  }));
+                },
+                onExit: function(err, metadata) {
+                  window.ReactNativeWebView.postMessage(JSON.stringify({
+                    type: 'PLAID_EXIT',
+                    error: err,
+                    metadata: metadata
+                  }));
+                },
+                onEvent: function(eventName, metadata) {
+                  window.ReactNativeWebView.postMessage(JSON.stringify({
+                    type: 'PLAID_EVENT',
+                    eventName: eventName,
+                    metadata: metadata
+                  }));
+                }
+              });
+              
+              // Open Link
+              window.plaidLinkHandler.open();
+            } catch (error) {
+              window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'PLAID_ERROR',
+                error: 'Failed to create Plaid Link: ' + (error.message || String(error))
+              }));
+            }
           }
-        };
-        script.onerror = function() {
-          window.ReactNativeWebView.postMessage(JSON.stringify({
-            type: 'PLAID_ERROR',
-            error: 'Failed to load Plaid Link script'
-          }));
-        };
-        document.head.appendChild(script);
+        }
       })();
     `;
 
     // Inject script after a short delay to ensure WebView is ready
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       webViewRef.current?.injectJavaScript(plaidLinkScript);
     }, 500);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
   }, [visible, linkToken]);
 
   const handleMessage = async (event: any) => {

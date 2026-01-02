@@ -22,42 +22,14 @@ export function PlaidLinkButton({ onSuccess, onError, onExit }: PlaidLinkButtonP
   const [modalVisible, setModalVisible] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Pre-fetch link token when component mounts
-    createLinkToken()
-      .then((token) => {
-        setLinkToken(token);
-        setError(null);
-      })
-      .catch((err: any) => {
-        console.error('[PlaidLinkButton] Failed to create link token:', err);
-        
-        // Extract error message
-        let errorMessage = 'Failed to initialize Plaid';
-        if (err?.detail) {
-          errorMessage = err.detail;
-          if (errorMessage.includes('PLAID_CLIENT_ID') || errorMessage.includes('PLAID_SECRET')) {
-            errorMessage = 'Plaid is not configured. Please contact support.';
-          }
-        } else if (err?.message) {
-          errorMessage = err.message;
-        }
-        
-        setError(errorMessage);
-        // Don't call onError here - let user try manually
-      });
-  }, []);
-
   const handlePress = async () => {
     try {
       setError(null);
-      // Ensure we have a link token
-      let token = linkToken;
-      if (!token) {
-        token = await createLinkToken();
-        setLinkToken(token);
-      }
-
+      // Always create a fresh link token for each attempt
+      // Plaid tokens are single-use and can't be reused
+      const token = await createLinkToken();
+      setLinkToken(token);
+      
       if (token) {
         setModalVisible(true);
       } else {
@@ -70,8 +42,12 @@ export function PlaidLinkButton({ onSuccess, onError, onExit }: PlaidLinkButtonP
       let errorMessage = 'Failed to connect to Plaid';
       
       if (err?.detail) {
-        // FastAPI error format
         errorMessage = err.detail;
+        // Check for Plaid-specific errors
+        if (errorMessage.includes('INVALID_CONFIGURATION') || 
+            errorMessage.includes('link token can only be configured')) {
+          errorMessage = 'Please try again. If the problem persists, refresh the page.';
+        }
       } else if (err?.message) {
         errorMessage = err.message;
       } else if (typeof err === 'string') {

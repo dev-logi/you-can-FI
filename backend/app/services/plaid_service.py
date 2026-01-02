@@ -231,12 +231,24 @@ class PlaidService:
             request = AccountsGetRequest(access_token=access_token)
             response = self.client.accounts_get(request)
             
-            # Get institution from item (if available in response)
-            # This is a simplified version - you may need to adjust based on actual SDK
-            return {
-                'item_id': response.get('item', {}).get('item_id'),
-                'institution_id': response.get('item', {}).get('institution_id'),
-            }
+            # Plaid SDK v9.0+ returns an object, not a dict
+            if hasattr(response, 'item'):
+                item = response.item
+                return {
+                    'item_id': getattr(item, 'item_id', None) or getattr(item, 'itemId', None),
+                    'institution_id': getattr(item, 'institution_id', None) or getattr(item, 'institutionId', None),
+                }
+            elif isinstance(response, dict):
+                item = response.get('item', {})
+                return {
+                    'item_id': item.get('item_id') or item.get('itemId'),
+                    'institution_id': item.get('institution_id') or item.get('institutionId'),
+                }
+            else:
+                return {
+                    'item_id': None,
+                    'institution_id': None,
+                }
         except Exception as e:
             print(f"Error fetching item: {e}")
             return None

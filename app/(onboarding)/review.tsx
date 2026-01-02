@@ -157,7 +157,7 @@ export default function ReviewScreen() {
                               {item.label}
                             </Text>
                           </XStack>
-                          <Text fontSize={14} fontWeight="600" color="#2d3436">
+                          <Text fontSize={14} fontWeight="600" color="#4a7c59">
                             {formatCurrency(item.value)}
                           </Text>
                         </XStack>
@@ -190,7 +190,7 @@ export default function ReviewScreen() {
                               {item.label}
                             </Text>
                           </XStack>
-                          <Text fontSize={14} fontWeight="600" color="#2d3436">
+                          <Text fontSize={14} fontWeight="600" color="#c75c5c">
                             {formatCurrency(item.value)}
                           </Text>
                         </XStack>

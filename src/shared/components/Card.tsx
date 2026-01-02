@@ -13,10 +13,10 @@ const StyledCard = styled(YStack, {
   borderRadius: 16,
   padding: 20,
   shadowColor: '#000',
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.04,
-  shadowRadius: 12,
-  elevation: 3,
+  shadowOffset: { width: 0, height: 3 },
+  shadowOpacity: 0.05,
+  shadowRadius: 10,
+  elevation: 2,
 
   variants: {
     variant: {

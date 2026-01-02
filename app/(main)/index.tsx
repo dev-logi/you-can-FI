@@ -205,8 +205,8 @@ export default function DashboardScreen() {
             </Card>
           </Animated.View>
 
-          {/* Breakdown Cards Carousel */}
-          {breakdownCards.length > 0 && (
+          {/* Breakdown Cards Carousel - HIDDEN TEMPORARILY */}
+          {false && breakdownCards.length > 0 && (
             <Animated.View entering={FadeInUp.delay(250).springify()}>
               <YStack gap={16}>
                 {/* Carousel */}
@@ -266,17 +266,22 @@ export default function DashboardScreen() {
                                     {item.label}
                                   </Text>
                                 </XStack>
-                                <XStack gap={12} alignItems="center">
+                                <XStack gap={4} alignItems="center">
                                   <Text
                                     fontSize={14}
                                     fontWeight="700"
                                     color={card.type === 'asset' ? '#4a7c59' : '#c75c5c'}
-                                    width={90}
+                                    width={85}
                                     textAlign="right"
                                   >
                                     {formatCurrency(item.value)}
                                   </Text>
-                                  <Text fontSize={12} color="#636e72" width={45} textAlign="right">
+                                  <Text
+                                    fontSize={12}
+                                    color="#636e72"
+                                    width={42}
+                                    textAlign="right"
+                                  >
                                     {formatPercentage(item.percentage)}
                                   </Text>
                                 </XStack>
@@ -547,4 +552,3 @@ export default function DashboardScreen() {
     </SafeAreaView>
   );
 }
-

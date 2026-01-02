@@ -11,7 +11,7 @@ import { YStack, XStack, Text } from 'tamagui';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { Button, ProgressBar } from '../../../src/shared/components';
+import { Button, ProgressBar, Card } from '../../../src/shared/components';
 import { useOnboardingStore } from '../../../src/features/onboarding/store';
 
 interface CountInputScreenProps {
@@ -91,6 +91,16 @@ export function CountInputScreen({
     ? Object.values(counts).every((c) => c >= 1)
     : count >= 1;
 
+  const getIcon = () => {
+    if (questionId.includes('auto')) return '🚗';
+    if (questionId.includes('mortgage') || questionId.includes('real_estate')) return '🏠';
+    if (questionId.includes('student')) return '🎓';
+    if (questionId.includes('credit')) return '💳';
+    if (questionId.includes('cash') || questionId.includes('savings')) return '💰';
+    if (questionId.includes('retirement') || questionId.includes('invest')) return '📈';
+    return '💰';
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#faf8f5' }}>
       <KeyboardAvoidingView
@@ -113,7 +123,7 @@ export function CountInputScreen({
             <YStack flex={1} justifyContent="center" gap={32} minHeight={400}>
               <Animated.View entering={FadeInDown.delay(200).springify()}>
                 <YStack gap={8} alignItems="center">
-                  <Text fontSize={48}>💰</Text>
+                  <Text fontSize={48}>{getIcon()}</Text>
                   <Text
                     fontSize={28}
                     fontWeight="700"
@@ -131,97 +141,105 @@ export function CountInputScreen({
 
               {/* Count Input */}
               <Animated.View entering={FadeInDown.delay(300).springify()}>
-                {isMultiSelect ? (
-                  <YStack gap={20}>
-                    {selectedOptions.map((option) => {
-                      const optionLabel = option
-                        .replace(/_/g, ' ')
-                        .replace(/\b\w/g, (l) => l.toUpperCase());
-                      const optionCount = counts[option] || 1;
+                <Card padding={24}>
+                  {isMultiSelect ? (
+                    <YStack gap={24}>
+                      {selectedOptions.map((option) => {
+                        const optionLabel = option
+                          .replace(/_/g, ' ')
+                          .replace(/\b\w/g, (l) => l.toUpperCase());
+                        const optionCount = counts[option] || 1;
 
-                      return (
-                        <YStack key={option} gap={8}>
-                          <Text fontSize={16} fontWeight="600" color="#2d3436">
-                            {optionLabel}
-                          </Text>
-                          <XStack
-                            alignItems="center"
-                            justifyContent="center"
-                            gap={24}
-                            paddingVertical={16}
-                            backgroundColor="#ffffff"
-                            borderRadius={16}
-                            borderWidth={2}
-                            borderColor="#e8e8e8"
-                          >
-                            <Button
-                              variant="ghost"
-                              onPress={() => handleDecrement(option)}
-                              disabled={optionCount <= 1}
-                              style={{ minWidth: 60 }}
-                            >
-                              −
-                            </Button>
-                            <Text
-                              fontSize={32}
-                              fontWeight="700"
-                              color="#1e3a5f"
-                              minWidth={60}
-                              textAlign="center"
-                            >
-                              {optionCount}
+                        return (
+                          <YStack key={option} gap={8}>
+                            <Text fontSize={16} fontWeight="600" color="#2d3436">
+                              {optionLabel}
                             </Text>
-                            <Button
-                              variant="ghost"
-                              onPress={() => handleIncrement(option)}
-                              disabled={optionCount >= 50}
-                              style={{ minWidth: 60 }}
+                            <XStack
+                              alignItems="center"
+                              justifyContent="center"
+                              gap={24}
+                              paddingVertical={12}
+                              backgroundColor="#f8f9fa"
+                              borderRadius={12}
+                              borderWidth={1}
+                              borderColor="#e0e0e0"
                             >
-                              +
-                            </Button>
-                          </XStack>
-                        </YStack>
-                      );
-                    })}
-                  </YStack>
-                ) : (
-                  <XStack
-                    alignItems="center"
-                    justifyContent="center"
-                    gap={24}
-                    paddingVertical={24}
-                    backgroundColor="#ffffff"
-                    borderRadius={16}
-                    borderWidth={2}
-                    borderColor="#e8e8e8"
-                  >
-                    <Button
-                      variant="ghost"
-                      onPress={() => handleDecrement()}
-                      disabled={count <= 1}
-                      style={{ minWidth: 60 }}
-                    >
-                      −
-                    </Button>
-                    <Text
-                      fontSize={48}
-                      fontWeight="700"
-                      color="#1e3a5f"
-                      minWidth={80}
-                      textAlign="center"
-                    >
-                      {count}
-                    </Text>
-                    <Button
-                      variant="ghost"
-                      onPress={() => handleIncrement()}
-                      disabled={count >= 50}
-                      style={{ minWidth: 60 }}
-                    >
-                      +
-                    </Button>
-                  </XStack>
-                )}
+                              <Button
+                                variant="ghost"
+                                onPress={() => handleDecrement(option)}
+                                disabled={optionCount <= 1}
+                                style={{ minWidth: 50 }}
+                              >
+                                <Text fontSize={24} color="#1e3a5f">−</Text>
+                              </Button>
+                              <Text
+                                fontSize={28}
+                                fontWeight="700"
+                                color="#1e3a5f"
+                                minWidth={50}
+                                textAlign="center"
+                              >
+                                {optionCount}
+                              </Text>
+                              <Button
+                                variant="ghost"
+                                onPress={() => handleIncrement(option)}
+                                disabled={optionCount >= 50}
+                                style={{ minWidth: 50 }}
+                              >
+                                <Text fontSize={24} color="#1e3a5f">+</Text>
+                              </Button>
+                            </XStack>
+                          </YStack>
+                        );
+                      })}
+                    </YStack>
+                  ) : (
+                    <YStack alignItems="center" gap={16}>
+                      <Text fontSize={16} color="#636e72" textAlign="center">
+                        Enter the number of accounts
+                      </Text>
+                      <XStack
+                        alignItems="center"
+                        justifyContent="center"
+                        gap={24}
+                        paddingVertical={16}
+                        backgroundColor="#f8f9fa"
+                        borderRadius={12}
+                        borderWidth={1}
+                        borderColor="#e0e0e0"
+                        width="100%"
+                      >
+                        <Button
+                          variant="ghost"
+                          onPress={() => handleDecrement()}
+                          disabled={count <= 1}
+                          style={{ minWidth: 60 }}
+                        >
+                          <Text fontSize={28} color="#1e3a5f">−</Text>
+                        </Button>
+                        <Text
+                          fontSize={40}
+                          fontWeight="700"
+                          color="#1e3a5f"
+                          minWidth={60}
+                          textAlign="center"
+                        >
+                          {count}
+                        </Text>
+                        <Button
+                          variant="ghost"
+                          onPress={() => handleIncrement()}
+                          disabled={count >= 50}
+                          style={{ minWidth: 60 }}
+                        >
+                          <Text fontSize={28} color="#1e3a5f">+</Text>
+                        </Button>
+                      </XStack>
+                    </YStack>
+                  )}
+                </Card>
               </Animated.View>
             </YStack>
 

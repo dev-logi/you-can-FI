@@ -11,7 +11,7 @@ import { YStack, XStack, Text } from 'tamagui';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { Button, ProgressBar, OptionButton } from '../../../shared/components';
+import { Button, ProgressBar, OptionButton, Card } from '../../../shared/components';
 import { useOnboardingStore } from '../store';
 import { Question } from '../../../shared/types';
 import { getPreviousQuestionId } from '../engine';
@@ -25,7 +25,7 @@ interface QuestionScreenProps {
 export function QuestionScreen({ questionId, question, nextRoute }: QuestionScreenProps) {
   const router = useRouter();
   const { answerQuestion, progress, isLoading, state } = useOnboardingStore();
-  
+
   // For multi-choice, use array; for single/yes-no, use string
   const isMultiChoice = question.type === 'multi_choice';
   const [selectedSingle, setSelectedSingle] = useState<string | null>(null);
@@ -135,75 +135,79 @@ export function QuestionScreen({ questionId, question, nextRoute }: QuestionScre
           showsVerticalScrollIndicator={false}
         >
           <YStack flex={1} padding={24} paddingBottom={40}>
-            {/* Back Button */}
-            {canGoBack && (
-              <Animated.View entering={FadeInDown.delay(50).springify()}>
-                <Pressable onPress={handleBack} style={{ marginBottom: 16 }}>
-                  <XStack alignItems="center" gap={8}>
-                    <Text fontSize={18}>←</Text>
-                    <Text fontSize={16} color="#636e72">
-                      Back
-                    </Text>
-                  </XStack>
-                </Pressable>
-              </Animated.View>
-            )}
+            {/* Header */}
+            <Animated.View entering={FadeInDown.delay(50).springify()}>
+              <YStack gap={8} marginBottom={24}>
+                {canGoBack && (
+                  <Pressable onPress={handleBack} style={{ marginBottom: 8 }}>
+                    <XStack alignItems="center" gap={8}>
+                      <Text fontSize={18}>←</Text>
+                      <Text fontSize={16} color="#636e72">
+                        Back
+                      </Text>
+                    </XStack>
+                  </Pressable>
+                )}
+                <Text
+                  fontSize={28}
+                  fontWeight="700"
+                  color="#2d3436"
+                  fontFamily="$heading"
+                >
+                  {question.title}
+                </Text>
+                {question.subtitle && (
+                  <Text fontSize={16} color="#636e72">
+                    {question.subtitle}
+                  </Text>
+                )}
+              </YStack>
+            </Animated.View>
 
             {/* Progress */}
             <Animated.View entering={FadeInDown.delay(100).springify()}>
               <ProgressBar progress={progress} />
             </Animated.View>
 
-            {/* Question */}
-            <YStack flex={1} justifyContent="center" gap={32} minHeight={400}>
+            {/* Content Card */}
+            <YStack flex={1} justifyContent="center" marginTop={24}>
               <Animated.View entering={FadeInDown.delay(200).springify()}>
-                <YStack gap={8}>
-                  <Text
-                    fontSize={28}
-                    fontWeight="700"
-                    color="#2d3436"
-                    fontFamily="$heading"
-                  >
-                    {question.title}
-                  </Text>
-                  {question.subtitle && (
-                    <Text fontSize={16} color="#636e72">
-                      {question.subtitle}
+                <Card>
+                  <YStack gap={16}>
+                    <Text fontSize={14} fontWeight="600" color="#2d3436">
+                      {isMultiChoice ? 'Select all that apply:' : 'Select one:'}
                     </Text>
-                  )}
-                </YStack>
-              </Animated.View>
+                    <YStack gap={10}>
+                      {question.options?.map((option) => {
+                        const isSelected = isMultiChoice
+                          ? selectedMulti.includes(option.value)
+                          : selectedSingle === option.value;
 
-              {/* Options */}
-              <Animated.View entering={FadeInDown.delay(300).springify()}>
-                <YStack gap={12}>
-                  {question.options?.map((option) => {
-                    const isSelected = isMultiChoice
-                      ? selectedMulti.includes(option.value)
-                      : selectedSingle === option.value;
-
-                    return (
-                      <OptionButton
-                        key={option.id}
-                        label={option.label}
-                        selected={isSelected}
-                        onPress={() => handleOptionPress(option.value)}
-                        radio={!isMultiChoice}
-                      />
-                    );
-                  })}
-                </YStack>
+                        return (
+                          <OptionButton
+                            key={option.id}
+                            label={option.label}
+                            selected={isSelected}
+                            onPress={() => handleOptionPress(option.value)}
+                            radio={!isMultiChoice}
+                          />
+                        );
+                      })}
+                    </YStack>
+                  </YStack>
+                </Card>
               </Animated.View>
             </YStack>
 
-            {/* Footer - Always visible at bottom */}
-            <Animated.View entering={FadeInDown.delay(400).springify()}>
+            {/* Footer */}
+            <Animated.View entering={FadeInDown.delay(300).springify()}>
               <Button
                 variant="primary"
                 fullWidth
                 onPress={handleContinue}
                 disabled={!canContinue}
                 loading={isLoading}
+                style={{ backgroundColor: '#1e3a5f' }}
               >
                 Continue
               </Button>

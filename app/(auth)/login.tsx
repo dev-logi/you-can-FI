@@ -10,6 +10,7 @@ import { YStack, XStack, Text, ScrollView } from 'tamagui';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Pressable, KeyboardAvoidingView, Platform } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { Button, Input, Card } from '@/shared/components';
 import { useAuthStore } from '@/features/auth/store';
@@ -53,7 +54,7 @@ export default function LoginScreen() {
     if (signInError) {
       const friendlyMessage = getFriendlyErrorMessage(signInError.message);
       setLocalError(friendlyMessage);
-      
+
       // If email not confirmed, show resend option
       if (signInError.message.includes('Email not confirmed') || signInError.message.includes('email_not_confirmed')) {
         setShowResendOption(true);
@@ -75,127 +76,134 @@ export default function LoginScreen() {
           break;
         }
       }
-      
+
       if (!sessionAvailable) {
         console.warn('[Login] No session available after signin - will be set by auth state listener');
       }
-      
+
       // Navigation will be handled by root layout when auth state changes
       router.replace('/(onboarding)');
     }
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }}>
+    <SafeAreaView style={{ flex: 1 }}>
+      <LinearGradient
+        colors={['#667eea', '#764ba2']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ flex: 1, position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
+      />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 20}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <ScrollView
           flex={1}
-          contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           <Animated.View entering={FadeInDown.delay(100).springify()}>
-            <YStack gap={24} marginTop={40}>
-              <YStack gap={8}>
-                <Text fontSize={32} fontWeight="700" color="#2d3436" fontFamily="$heading">
+            <YStack gap={32} alignItems="center">
+              {/* Header - Outside Card */}
+              <YStack gap={8} alignItems="center">
+                <Text fontSize={32} fontWeight="700" color="white" fontFamily="$heading" textAlign="center">
                   Welcome Back
                 </Text>
-                <Text fontSize={16} color="#636e72">
-                  Sign in to continue tracking your finances
+                <Text fontSize={16} color="rgba(255,255,255,0.9)" textAlign="center">
+                  Sign in to continue
                 </Text>
               </YStack>
 
-              <YStack gap={20} marginTop={24}>
-                <Input
-                  label="Email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                />
+              {/* Card - White Background */}
+              <Card width="100%" padding={24} borderRadius={16} backgroundColor="white" shadowColor="rgba(0,0,0,0.2)" shadowRadius={20} shadowOpacity={0.5}>
+                <YStack gap={20}>
+                  <Input
+                    label="Email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                  />
 
-                <Input
-                  label="Password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  autoCapitalize="none"
-                  autoComplete="password"
-                />
-              </YStack>
+                  <Input
+                    label="Password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    autoComplete="password"
+                  />
 
-              {(localError || error) && (
-                <Card variant="warning">
-                  <YStack gap={8}>
-                    <Text color="#d4a84b" fontSize={14}>
-                      {localError || error}
-                    </Text>
-                    {showResendOption && (
-                      <Pressable onPress={async () => {
-                        setResendSuccess(false);
-                        try {
-                          const { error: resendError } = await supabase.auth.resend({
-                            type: 'signup',
-                            email,
-                            options: {
-                              emailRedirectTo: 'youcanfi://email-confirmed',
-                            },
-                          });
-                          if (resendError) {
-                            setLocalError(resendError.message);
-                          } else {
-                            setResendSuccess(true);
-                            setTimeout(() => setResendSuccess(false), 5000);
-                          }
-                        } catch (err) {
-                          setLocalError('Failed to resend confirmation email');
-                        }
-                      }}>
-                        <Text color="#1e3a5f" fontSize={14} fontWeight="600" textDecorationLine="underline">
-                          Resend confirmation email
+                  {(localError || error) && (
+                    <YStack padding={12} backgroundColor="#fff4f4" borderRadius={8} borderWidth={1} borderColor="#ffcccc">
+                      <YStack gap={8}>
+                        <Text color="#c75c5c" fontSize={14}>
+                          {localError || error}
                         </Text>
-                      </Pressable>
-                    )}
-                    {resendSuccess && (
-                      <Text color="#4a7c59" fontSize={14}>
-                        ✓ Confirmation email sent! Please check your inbox.
-                      </Text>
-                    )}
+                        {showResendOption && (
+                          <Pressable onPress={async () => {
+                            setResendSuccess(false);
+                            try {
+                              const { error: resendError } = await supabase.auth.resend({
+                                type: 'signup',
+                                email,
+                                options: {
+                                  emailRedirectTo: 'youcanfi://email-confirmed',
+                                },
+                              });
+                              if (resendError) {
+                                setLocalError(resendError.message);
+                              } else {
+                                setResendSuccess(true);
+                                setTimeout(() => setResendSuccess(false), 5000);
+                              }
+                            } catch (err) {
+                              setLocalError('Failed to resend confirmation email');
+                            }
+                          }}>
+                            <Text color="#1e3a5f" fontSize={14} fontWeight="600" textDecorationLine="underline">
+                              Resend confirmation email
+                            </Text>
+                          </Pressable>
+                        )}
+                        {resendSuccess && (
+                          <Text color="#4a7c59" fontSize={14}>
+                            ✓ Confirmation email sent! Please check your inbox.
+                          </Text>
+                        )}
+                      </YStack>
+                    </YStack>
+                  )}
+
+                  <YStack gap={12} marginTop={8}>
+                    <Button
+                      variant="primary"
+                      fullWidth
+                      onPress={handleLogin}
+                      loading={isLoading}
+                      disabled={!email || !password}
+                      style={{ backgroundColor: '#1e3a5f' }}
+                    >
+                      Sign In
+                    </Button>
+
+                    <Button
+                      variant="outlined"
+                      fullWidth
+                      onPress={() => router.push('/(auth)/signup')}
+                      style={{ borderColor: '#1e3a5f', borderWidth: 2 }}
+                    >
+                      <Text color="#1e3a5f" fontWeight="600">Create Account</Text>
+                    </Button>
                   </YStack>
-                </Card>
-              )}
-
-              <Animated.View entering={FadeInDown.delay(200).springify()}>
-                <YStack gap={16} marginTop={8}>
-                  <Button
-                    variant="primary"
-                    fullWidth
-                    onPress={handleLogin}
-                    loading={isLoading}
-                    disabled={!email || !password}
-                  >
-                    Sign In
-                  </Button>
-
-                  <XStack justifyContent="center" alignItems="center" gap={8}>
-                    <Text fontSize={14} color="#636e72">
-                      Don't have an account?
-                    </Text>
-                    <Pressable onPress={() => router.push('/(auth)/signup')}>
-                      <Text fontSize={14} color="#1e3a5f" fontWeight="600">
-                        Sign Up
-                      </Text>
-                    </Pressable>
-                  </XStack>
                 </YStack>
-              </Animated.View>
+              </Card>
             </YStack>
           </Animated.View>
         </ScrollView>

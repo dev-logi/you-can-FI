@@ -90,7 +90,15 @@ class PlaidService:
         )
         
         response = self.client.link_token_create(request)
-        return response['link_token']
+        # Plaid SDK v9.0+ returns an object, not a dict
+        # Access link_token as an attribute
+        if hasattr(response, 'link_token'):
+            return response.link_token
+        elif isinstance(response, dict):
+            return response.get('link_token') or response.get('linkToken')
+        else:
+            # Try to get it from the response data
+            return str(response)
     
     def exchange_public_token(self, public_token: str) -> Dict[str, str]:
         """
@@ -125,15 +133,28 @@ class PlaidService:
         request = AccountsGetRequest(access_token=access_token)
         response = self.client.accounts_get(request)
         
+        # Plaid SDK v9.0+ returns an object, not a dict
+        accounts_data = response.accounts if hasattr(response, 'accounts') else response.get('accounts', []) if isinstance(response, dict) else []
+        
         accounts = []
-        for account in response['accounts']:
-            accounts.append({
-                'account_id': account['account_id'],
-                'name': account['name'],
-                'type': account['type'],
-                'subtype': account.get('subtype'),
-                'mask': account.get('mask'),  # Last 4 digits
-            })
+        for account in accounts_data:
+            # Handle both object and dict formats
+            if hasattr(account, 'account_id'):
+                accounts.append({
+                    'account_id': account.account_id,
+                    'name': account.name,
+                    'type': account.type,
+                    'subtype': getattr(account, 'subtype', None),
+                    'mask': getattr(account, 'mask', None),  # Last 4 digits
+                })
+            else:
+                accounts.append({
+                    'account_id': account.get('account_id') or account.get('accountId'),
+                    'name': account.get('name'),
+                    'type': account.get('type'),
+                    'subtype': account.get('subtype'),
+                    'mask': account.get('mask'),  # Last 4 digits
+                })
         
         return accounts
     
@@ -207,7 +228,13 @@ class PlaidService:
         try:
             request = ItemRemoveRequest(access_token=access_token)
             response = self.client.item_remove(request)
-            return response.get('removed', False)
+            # Plaid SDK v9.0+ returns an object, not a dict
+            if hasattr(response, 'removed'):
+                return response.removed
+            elif isinstance(response, dict):
+                return response.get('removed', False)
+            else:
+                return False
         except Exception as e:
             print(f"Error removing item: {e}")
             return False

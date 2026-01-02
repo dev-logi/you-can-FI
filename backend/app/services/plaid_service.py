@@ -30,16 +30,30 @@ class PlaidService:
         self._client = None
         self._initialized = False
     
+    def _get_plaid_host(self) -> str:
+        """Get Plaid host URL based on environment."""
+        env = settings.plaid_environment.lower()
+        if env == "production":
+            return "https://production.plaid.com"
+        elif env == "development":
+            return "https://development.plaid.com"
+        else:  # sandbox
+            return "https://sandbox.plaid.com"
+    
     @property
     def client(self):
         """Lazy initialization of Plaid client."""
         if not self._initialized:
             try:
+                # Validate credentials are set
+                if not settings.plaid_client_id or not settings.plaid_secret:
+                    raise ValueError("PLAID_CLIENT_ID and PLAID_SECRET must be set")
+                
                 configuration = Configuration(
-                    host=getattr(plaid_api.Environment, settings.plaid_environment.upper(), plaid_api.Environment.sandbox),
+                    host=self._get_plaid_host(),
                     api_key={
-                        'clientId': settings.plaid_client_id or '',
-                        'secret': settings.plaid_secret or '',
+                        'clientId': settings.plaid_client_id,
+                        'secret': settings.plaid_secret,
                     }
                 )
                 api_client = ApiClient(configuration)

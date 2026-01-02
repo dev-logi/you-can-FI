@@ -115,10 +115,23 @@ class PlaidService:
         )
         
         response = self.client.item_public_token_exchange(request)
-        return {
-            'access_token': response['access_token'],
-            'item_id': response['item_id']
-        }
+        # Plaid SDK v9.0+ returns an object, not a dict
+        if hasattr(response, 'access_token'):
+            return {
+                'access_token': response.access_token,
+                'item_id': response.item_id
+            }
+        elif isinstance(response, dict):
+            return {
+                'access_token': response.get('access_token') or response.get('accessToken'),
+                'item_id': response.get('item_id') or response.get('itemId')
+            }
+        else:
+            # Fallback - try to convert to dict
+            return {
+                'access_token': getattr(response, 'access_token', ''),
+                'item_id': getattr(response, 'item_id', '')
+            }
     
     def get_accounts(self, access_token: str) -> List[Dict]:
         """
@@ -176,13 +189,26 @@ class PlaidService:
             )
             response = self.client.accounts_balance_get(request)
             
-            if response['accounts']:
-                account = response['accounts'][0]
-                return {
-                    'available': account.get('balances', {}).get('available'),
-                    'current': account.get('balances', {}).get('current'),
-                    'limit': account.get('balances', {}).get('limit'),
-                }
+            # Plaid SDK v9.0+ returns an object, not a dict
+            accounts_data = response.accounts if hasattr(response, 'accounts') else response.get('accounts', []) if isinstance(response, dict) else []
+            
+            if accounts_data:
+                account = accounts_data[0]
+                # Handle both object and dict formats
+                if hasattr(account, 'balances'):
+                    balances = account.balances
+                    return {
+                        'available': getattr(balances, 'available', None),
+                        'current': getattr(balances, 'current', None),
+                        'limit': getattr(balances, 'limit', None),
+                    }
+                else:
+                    balances = account.get('balances', {}) if isinstance(account, dict) else {}
+                    return {
+                        'available': balances.get('available') if isinstance(balances, dict) else None,
+                        'current': balances.get('current') if isinstance(balances, dict) else None,
+                        'limit': balances.get('limit') if isinstance(balances, dict) else None,
+                    }
         except Exception as e:
             print(f"Error fetching balance: {e}")
             return None

@@ -78,6 +78,9 @@ class PlaidService:
             
         Returns:
             Link token string
+            
+        Raises:
+            Exception: If link token creation fails, with detailed error message
         """
         request = LinkTokenCreateRequest(
             products=[Products('auth'), Products('balance')],
@@ -89,16 +92,48 @@ class PlaidService:
             )
         )
         
-        response = self.client.link_token_create(request)
-        # Plaid SDK v9.0+ returns an object, not a dict
-        # Access link_token as an attribute
-        if hasattr(response, 'link_token'):
-            return response.link_token
-        elif isinstance(response, dict):
-            return response.get('link_token') or response.get('linkToken')
-        else:
-            # Try to get it from the response data
-            return str(response)
+        try:
+            response = self.client.link_token_create(request)
+            # Plaid SDK v9.0+ returns an object, not a dict
+            # Access link_token as an attribute
+            if hasattr(response, 'link_token'):
+                return response.link_token
+            elif isinstance(response, dict):
+                return response.get('link_token') or response.get('linkToken')
+            else:
+                # Try to get it from the response data
+                return str(response)
+        except Exception as e:
+            # Plaid SDK v9.0+ exceptions have specific attributes
+            error_message = str(e)
+            error_code = None
+            
+            # Try to extract Plaid-specific error information
+            if hasattr(e, 'body'):
+                # Plaid API exceptions often have a 'body' attribute with error details
+                try:
+                    import json
+                    if isinstance(e.body, str):
+                        error_body = json.loads(e.body)
+                    else:
+                        error_body = e.body
+                    
+                    error_code = error_body.get('error_code') or error_body.get('errorCode')
+                    error_message = error_body.get('error_message') or error_body.get('errorMessage') or error_message
+                except:
+                    pass
+            
+            # Also check for error_code and error_message as direct attributes
+            if hasattr(e, 'error_code'):
+                error_code = e.error_code
+            if hasattr(e, 'error_message'):
+                error_message = e.error_message
+            
+            # Format error message
+            if error_code:
+                raise Exception(f"Plaid error ({error_code}): {error_message}")
+            else:
+                raise Exception(f"Plaid API error: {error_message}")
     
     def exchange_public_token(self, public_token: str) -> Dict[str, str]:
         """

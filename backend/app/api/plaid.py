@@ -39,10 +39,20 @@ def create_link_token(
         link_token = plaid_service.create_link_token(user_id)
         return LinkTokenResponse(link_token=link_token)
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create link token: {str(e)}"
-        )
+        # Pass through the detailed error message from Plaid
+        error_message = str(e)
+        
+        # Check if it's a Plaid-specific error
+        if "INVALID_CONFIGURATION" in error_message or "link token can only be configured" in error_message:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=error_message
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to create link token: {error_message}"
+            )
 
 
 @router.post("/exchange-token", response_model=List[PlaidAccountInfo])

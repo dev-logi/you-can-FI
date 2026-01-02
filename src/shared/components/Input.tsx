@@ -13,10 +13,13 @@ const StyledInput = styled(TamaguiInput, {
   borderColor: '#e0ddd8',
   borderRadius: 12,
   paddingHorizontal: 16,
-  paddingVertical: 14,
+  paddingTop: 16, // Increased to prevent top text cutoff
+  paddingBottom: 16, // Increased to prevent bottom text cutoff
   fontSize: 16,
+  lineHeight: 20, // Add line height to ensure text doesn't get clipped
   color: '#2d3436',
   fontFamily: '$body',
+  minHeight: 52, // Ensure minimum height for proper text display
 
   focusStyle: {
     borderColor: '#1e3a5f',

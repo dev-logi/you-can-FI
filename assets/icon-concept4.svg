@@ -1,0 +1,51 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background - Cream color -->
+  <rect width="1024" height="1024" fill="#faf8f5" rx="0"/>
+  
+  <!-- Graph Container - Slightly offset for visual interest -->
+  <g transform="translate(200, 300)">
+    <!-- Graph Background Area (subtle) -->
+    <path d="M 0 400 L 100 350 L 200 280 L 300 200 L 400 150 L 500 100 L 500 400 L 0 400 Z" 
+          fill="#1e3a5f" 
+          opacity="0.1"/>
+    
+    <!-- Grid Lines (subtle) -->
+    <line x1="0" y1="400" x2="500" y2="400" stroke="#1e3a5f" stroke-width="2" opacity="0.15"/>
+    <line x1="0" y1="300" x2="500" y2="300" stroke="#1e3a5f" stroke-width="2" opacity="0.15"/>
+    <line x1="0" y1="200" x2="500" y2="200" stroke="#1e3a5f" stroke-width="2" opacity="0.15"/>
+    <line x1="0" y1="100" x2="500" y2="100" stroke="#1e3a5f" stroke-width="2" opacity="0.15"/>
+    
+    <!-- Upward Trending Graph Line - Navy -->
+    <path d="M 0 400 L 100 350 L 200 280 L 300 200 L 400 150 L 500 100" 
+          fill="none" 
+          stroke="#1e3a5f" 
+          stroke-width="24" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"/>
+    
+    <!-- Data Points - Gold circles -->
+    <circle cx="0" cy="400" r="16" fill="#d4a84b"/>
+    <circle cx="100" cy="350" r="16" fill="#d4a84b"/>
+    <circle cx="200" cy="280" r="16" fill="#d4a84b"/>
+    <circle cx="300" cy="200" r="16" fill="#d4a84b"/>
+    <circle cx="400" cy="150" r="16" fill="#d4a84b"/>
+    <circle cx="500" cy="100" r="20" fill="#d4a84b" stroke="#1e3a5f" stroke-width="3"/>
+  </g>
+  
+  <!-- Friendly Smile - Positioned near the top of the graph -->
+  <g transform="translate(550, 200)">
+    <!-- Smile Arc -->
+    <path d="M 0 0 Q 30 30 60 0" 
+          fill="none" 
+          stroke="#1e3a5f" 
+          stroke-width="16" 
+          stroke-linecap="round"/>
+  </g>
+  
+  <!-- Optional: Small sparkle/star at peak point for extra friendliness -->
+  <g transform="translate(500, 100)">
+    <path d="M 0 -20 L 4 -4 L 20 0 L 4 4 L 0 20 L -4 4 L -20 0 L -4 -4 Z" 
+          fill="#d4a84b" 
+          opacity="0.8"/>
+  </g>
+</svg>

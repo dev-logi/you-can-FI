@@ -83,7 +83,7 @@ class PlaidService:
             Exception: If link token creation fails, with detailed error message
         """
         request = LinkTokenCreateRequest(
-            products=[Products('auth'), Products('balance')],
+            products=[Products('auth')],  # 'auth' includes balance data automatically
             client_name="You Can FI",
             country_codes=[CountryCode('US')],
             language='en',

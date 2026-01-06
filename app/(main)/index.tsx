@@ -18,7 +18,7 @@ import { formatCurrency, formatPercentage } from '../../src/shared/utils';
 import type { PieChartData } from '../../src/shared/components';
 import { PlaidLinkButton } from '../../src/features/plaid/components/PlaidLinkButton';
 import { AccountLinkingModal } from '../../src/features/plaid/components/AccountLinkingModal';
-import { usePlaidStore } from '../../src/features/plaid/store';
+// PlaidLinkButton handles Plaid store internally
 import type { PlaidAccountInfo } from '../../src/api/services/plaidService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -51,7 +51,7 @@ export default function DashboardScreen() {
   const [plaidAccountToLink, setPlaidAccountToLink] = useState<PlaidAccountInfo | null>(null);
   
   // Plaid store
-  const { exchangePublicToken } = usePlaidStore();
+  // PlaidLinkButton now handles token exchange internally
 
   const handleLogout = async () => {
     await signOut();
@@ -340,18 +340,14 @@ export default function DashboardScreen() {
           {/* Connect Bank Account Button */}
           <Animated.View entering={FadeInUp.delay(300).springify()}>
             <PlaidLinkButton
-              onSuccess={async (publicToken: string, metadata: any) => {
+              onSuccess={(publicToken: string, metadata: any) => {
                 console.log('[Dashboard] Plaid Link Success:', publicToken, metadata);
-                try {
-                  const linkedAccount = await exchangePublicToken(publicToken);
-                  if (linkedAccount && linkedAccount.length > 0) {
-                    setPlaidAccountToLink(linkedAccount[0]);
-                    setShowAccountLinkingModal(true);
-                  }
-                  refresh(); // Refresh net worth data after linking
-                } catch (error) {
-                  console.error('[Dashboard] Error exchanging public token:', error);
+                // Accounts are already exchanged by PlaidLinkButton and passed in metadata
+                if (metadata.accounts && metadata.accounts.length > 0) {
+                  setPlaidAccountToLink(metadata.accounts[0]);
+                  setShowAccountLinkingModal(true);
                 }
+                refresh(); // Refresh net worth data after linking
               }}
               onError={(error: any) => {
                 console.error('[Dashboard] Plaid Link Error:', error);

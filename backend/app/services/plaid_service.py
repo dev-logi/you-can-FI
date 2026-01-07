@@ -16,6 +16,7 @@ from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchan
 from plaid.model.accounts_get_request import AccountsGetRequest
 from plaid.model.accounts_balance_get_request import AccountsBalanceGetRequest
 from plaid.model.item_remove_request import ItemRemoveRequest
+from plaid.model.institutions_get_by_id_request import InstitutionsGetByIdRequest
 
 from app.config import get_settings
 
@@ -366,6 +367,37 @@ class PlaidService:
         except Exception as e:
             print(f"Error fetching item: {e}")
             return None
+    
+    def get_institution_name(self, institution_id: str) -> str:
+        """
+        Get the display name for an institution.
+        
+        Args:
+            institution_id: Plaid institution ID (e.g., 'ins_118924')
+            
+        Returns:
+            Human-readable institution name or the ID as fallback
+        """
+        if not institution_id:
+            return 'Bank'
+        
+        try:
+            request = InstitutionsGetByIdRequest(
+                institution_id=institution_id,
+                country_codes=[CountryCode('US')]
+            )
+            response = self.client.institutions_get_by_id(request)
+            
+            # Extract institution name from response
+            if hasattr(response, 'institution'):
+                return getattr(response.institution, 'name', institution_id)
+            elif isinstance(response, dict):
+                return response.get('institution', {}).get('name', institution_id)
+            else:
+                return institution_id
+        except Exception as e:
+            print(f"Error fetching institution name for {institution_id}: {e}")
+            return institution_id  # Fallback to ID
     
     def remove_item(self, access_token: str) -> bool:
         """

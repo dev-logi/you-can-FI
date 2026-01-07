@@ -188,11 +188,14 @@ class PlaidService:
         for account in accounts_data:
             # Handle both object and dict formats
             if hasattr(account, 'account_id'):
+                # Convert Plaid enum types to strings
+                account_type = account.type
+                account_subtype = getattr(account, 'subtype', None)
                 accounts.append({
                     'account_id': account.account_id,
                     'name': account.name,
-                    'type': account.type,
-                    'subtype': getattr(account, 'subtype', None),
+                    'type': account_type.value if hasattr(account_type, 'value') else str(account_type),
+                    'subtype': account_subtype.value if hasattr(account_subtype, 'value') else str(account_subtype) if account_subtype else None,
                     'mask': getattr(account, 'mask', None),  # Last 4 digits
                 })
             else:

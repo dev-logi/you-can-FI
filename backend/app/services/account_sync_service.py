@@ -57,8 +57,10 @@ class AccountSyncService:
         Returns:
             Tuple of (category, is_asset) where category is None if unmapped
         """
-        subtype = (plaid_subtype or '').lower()
-        type_key = (plaid_type.lower(), subtype)
+        # Convert Plaid enums to strings (they may be enum objects, not strings)
+        type_str = str(plaid_type.value if hasattr(plaid_type, 'value') else plaid_type).lower()
+        subtype_str = str(plaid_subtype.value if hasattr(plaid_subtype, 'value') else (plaid_subtype or '')).lower()
+        type_key = (type_str, subtype_str)
         
         # Check asset categories
         if type_key in PLAID_TO_ASSET_CATEGORY:
@@ -69,16 +71,16 @@ class AccountSyncService:
             return PLAID_TO_LIABILITY_CATEGORY[type_key], False
         
         # Try with just type (no subtype)
-        type_only_key = (plaid_type.lower(), '')
+        type_only_key = (type_str, '')
         if type_only_key in PLAID_TO_ASSET_CATEGORY:
             return PLAID_TO_ASSET_CATEGORY[type_only_key], True
         if type_only_key in PLAID_TO_LIABILITY_CATEGORY:
             return PLAID_TO_LIABILITY_CATEGORY[type_only_key], False
         
         # Default fallback
-        if plaid_type.lower() in ['depository', 'investment']:
+        if type_str in ['depository', 'investment']:
             return 'other', True
-        elif plaid_type.lower() in ['credit', 'loan']:
+        elif type_str in ['credit', 'loan']:
             return 'other', False
         
         return None, False

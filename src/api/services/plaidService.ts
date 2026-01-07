@@ -68,10 +68,23 @@ class PlaidApiServiceClass {
    * Exchange public token for access token and fetch accounts.
    */
   async exchangePublicToken(publicToken: string): Promise<PlaidAccountInfo[]> {
-    const response = await ApiClient.post<PlaidAccountInfo[]>('/plaid/exchange-token', {
-      public_token: publicToken,
-    });
-    return response;
+    console.log('[PlaidApiService] exchangePublicToken called with publicToken:', publicToken);
+    try {
+      console.log('[PlaidApiService] Making POST request to /plaid/exchange-token');
+      const response = await ApiClient.post<PlaidAccountInfo[]>('/plaid/exchange-token', {
+        public_token: publicToken,
+      });
+      console.log('[PlaidApiService] Exchange successful, response:', response);
+      return response;
+    } catch (error) {
+      console.error('[PlaidApiService] Exchange token error:', error);
+      console.error('[PlaidApiService] Error type:', typeof error);
+      console.error('[PlaidApiService] Error keys:', Object.keys(error || {}));
+      console.error('[PlaidApiService] Error detail:', (error as any)?.detail);
+      console.error('[PlaidApiService] Error message:', (error as any)?.message);
+      console.error('[PlaidApiService] Error status:', (error as any)?.status);
+      throw error;
+    }
   }
 
   /**
@@ -99,11 +112,21 @@ class PlaidApiServiceClass {
   /**
    * Link a Plaid account to an existing asset or liability.
    */
-  async linkAccount(request: LinkAccountRequest): Promise<void> {
-    await ApiClient.post(`/plaid/accounts/${request.connected_account_id}/link`, {
-      entity_id: request.entity_id,
-      entity_type: request.entity_type,
-    });
+  async linkAccount(request: LinkAccountRequest): Promise<any> {
+    console.log('[PlaidApiService] linkAccount called with:', request);
+    try {
+      const response = await ApiClient.post(`/plaid/accounts/${request.connected_account_id}/link`, {
+        entity_id: request.entity_id,
+        entity_type: request.entity_type,
+      });
+      console.log('[PlaidApiService] linkAccount successful, response:', response);
+      return response;
+    } catch (error: any) {
+      console.error('[PlaidApiService] linkAccount failed:', error);
+      console.error('[PlaidApiService] Error detail:', error?.detail);
+      console.error('[PlaidApiService] Error status:', error?.status);
+      throw error;
+    }
   }
 
   /**

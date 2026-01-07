@@ -61,8 +61,9 @@ export function AccountLinkingModal({
         entity_id: selectedEntityId,
         entity_type: account.is_asset ? 'asset' : 'liability',
       };
-      await linkAccount(request);
-      console.log('[AccountLinkingModal] Link successful');
+      const result = await linkAccount(request);
+      console.log('[AccountLinkingModal] Link successful, result:', result);
+      console.log('[AccountLinkingModal] Calling onComplete to refresh data...');
       onComplete();
     } catch (err: any) {
       console.error('[AccountLinkingModal] Link error:', err);

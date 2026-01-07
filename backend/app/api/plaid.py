@@ -230,7 +230,16 @@ def link_account(
         )
     
     # Sync the account immediately after linking
-    account_sync_service.sync_account(db, account_id, user_id)
+    sync_success, sync_error = account_sync_service.sync_account(db, account_id, user_id)
+    
+    if not sync_success:
+        # Link succeeded but sync failed - log it but don't fail the request
+        print(f"[link_account] Sync failed after linking: {sync_error}")
+        return {
+            "status": "partial", 
+            "message": f"Account linked but sync failed: {sync_error}",
+            "sync_error": sync_error
+        }
     
     return {"status": "ok", "message": "Account linked and synced successfully"}
 

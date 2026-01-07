@@ -67,14 +67,10 @@ export default function ConnectedAccountsScreen() {
             alignItems="center"
           >
             <Pressable onPress={() => router.back()}>
-              <Text fontSize={16} color="#1e3a5f">
-                ← Back
-              </Text>
+              <Text fontSize={16} color="#1e3a5f">← Back</Text>
             </Pressable>
-            <Text fontSize={20} fontWeight="700" color="#2d3436">
-              Connected Accounts
-            </Text>
-            <YStack width={40} /> {/* Spacer */}
+            <Text fontSize={20} fontWeight="700" color="#2d3436">Connected Accounts</Text>
+            <YStack width={40} />
           </XStack>
         </Animated.View>
 
@@ -126,7 +122,7 @@ export default function ConnectedAccountsScreen() {
                         </YStack>
                       </XStack>
                       <Text fontSize={16} color="#636e72">
-                        {account.account_name} ({account.account_type} {account.account_subtype})
+                        {account.account_name} ({account.account_type}{account.account_subtype ? ` • ${account.account_subtype}` : ''})
                       </Text>
                       {account.last_synced_at && (
                         <Text fontSize={12} color="#636e72">

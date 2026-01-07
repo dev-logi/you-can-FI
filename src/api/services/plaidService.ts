@@ -18,6 +18,7 @@ export interface PlaidAccountInfo {
   mask?: string;
   suggested_category?: string;
   is_asset: boolean;
+  current_balance?: number;  // Current balance from Plaid
 }
 
 export interface ConnectedAccount {

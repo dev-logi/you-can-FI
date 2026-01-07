@@ -4,8 +4,8 @@
  * Modal for adding a new liability.
  */
 
-import React, { useState } from 'react';
-import { useRouter } from 'expo-router';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { YStack, XStack, Text, ScrollView } from 'tamagui';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Pressable, KeyboardAvoidingView, Platform } from 'react-native';
@@ -13,6 +13,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Button, Card, Input, CurrencyInput, OptionButton, CountInputModal, MultiItemForm, ExistingItemsView } from '../../src/shared/components';
 import { useNetWorthStore } from '../../src/features/netWorth/store';
+import { usePlaidStore } from '../../src/features/plaid/store';
 import { LiabilityCategory } from '../../src/shared/types';
 import { getLiabilityCategoryLabel } from '../../src/features/netWorth/service';
 import { isLiabilityCategoryItemizable, getLiabilityItemizationLabel, getLiabilityAdditionalItemizationLabel } from '../../src/shared/utils/itemization';
@@ -40,7 +41,16 @@ const LIABILITY_CATEGORIES: Array<{ value: LiabilityCategory; label: string }> =
 
 export default function AddLiabilityScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{
+    plaidAccountId?: string;
+    plaidName?: string;
+    plaidCategory?: string;
+    plaidType?: string;
+    plaidSubtype?: string;
+    plaidBalance?: string;
+  }>();
   const { addLiability, isLoading, error, liabilities } = useNetWorthStore();
+  const { linkAccount } = usePlaidStore();
 
   const [step, setStep] = useState<'category' | 'existing' | 'count' | 'details'>('category');
   const [category, setCategory] = useState<LiabilityCategory | null>(null);
@@ -50,6 +60,38 @@ export default function AddLiabilityScreen() {
   const [balance, setBalance] = useState(0);
   const [interestRate, setInterestRate] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
+  const [plaidAccountId, setPlaidAccountId] = useState<string | null>(null);
+
+  // Pre-fill from Plaid data if coming from account linking
+  useEffect(() => {
+    if (params.plaidAccountId) {
+      setPlaidAccountId(params.plaidAccountId);
+      
+      // Pre-fill name from Plaid
+      if (params.plaidName) {
+        setName(params.plaidName);
+      }
+      
+      // Pre-fill balance from Plaid (auto-sync the value!)
+      if (params.plaidBalance) {
+        const plaidBal = parseFloat(params.plaidBalance);
+        if (!isNaN(plaidBal)) {
+          setBalance(Math.abs(plaidBal)); // Use absolute value for liabilities
+        }
+      }
+      
+      // Pre-select category if provided
+      if (params.plaidCategory) {
+        const matchingCategory = LIABILITY_CATEGORIES.find(
+          c => c.value === params.plaidCategory
+        );
+        if (matchingCategory) {
+          setCategory(matchingCategory.value);
+          setStep('details'); // Skip to details since we have category
+        }
+      }
+    }
+  }, [params.plaidAccountId, params.plaidName, params.plaidCategory, params.plaidBalance]);
 
   const handleCategorySelect = (cat: LiabilityCategory) => {
     setCategory(cat);
@@ -110,12 +152,28 @@ export default function AddLiabilityScreen() {
     setLocalError(null);
 
     try {
-      await addLiability({
+      const liability = await addLiability({
         category,
         name,
         balance,
         interestRate: interestRate ? parseFloat(interestRate) : undefined,
       });
+      
+      // If this liability was created from a Plaid account, link them
+      if (plaidAccountId && liability?.id) {
+        try {
+          await linkAccount({
+            connected_account_id: plaidAccountId,
+            entity_id: liability.id,
+            entity_type: 'liability',
+          });
+          console.log('[AddLiability] Linked Plaid account to new liability');
+        } catch (linkError: any) {
+          console.error('[AddLiability] Failed to link Plaid account:', linkError);
+          // Don't fail the whole operation if linking fails
+        }
+      }
+      
       router.back();
     } catch (error: any) {
       console.error('Failed to add liability:', error);

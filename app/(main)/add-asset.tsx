@@ -4,8 +4,8 @@
  * Modal for adding a new asset.
  */
 
-import React, { useState } from 'react';
-import { useRouter } from 'expo-router';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { YStack, XStack, Text, ScrollView } from 'tamagui';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Pressable, KeyboardAvoidingView, Platform } from 'react-native';
@@ -13,6 +13,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Button, Card, Input, CurrencyInput, OptionButton, CountInputModal, MultiItemForm, ExistingItemsView } from '../../src/shared/components';
 import { useNetWorthStore } from '../../src/features/netWorth/store';
+import { usePlaidStore } from '../../src/features/plaid/store';
 import { AssetCategory } from '../../src/shared/types';
 import { ASSET_CATEGORY_CONFIG, getAssetCategoryLabel } from '../../src/features/netWorth/service';
 import { isAssetCategoryItemizable, getAssetItemizationLabel, getAssetAdditionalItemizationLabel } from '../../src/shared/utils/itemization';
@@ -38,7 +39,16 @@ const ASSET_CATEGORIES: Array<{ value: AssetCategory; label: string }> = [
 
 export default function AddAssetScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{
+    plaidAccountId?: string;
+    plaidName?: string;
+    plaidCategory?: string;
+    plaidType?: string;
+    plaidSubtype?: string;
+    plaidBalance?: string;
+  }>();
   const { addAsset, isLoading, error, assets } = useNetWorthStore();
+  const { linkAccount } = usePlaidStore();
 
   const [step, setStep] = useState<'category' | 'existing' | 'count' | 'details'>('category');
   const [category, setCategory] = useState<AssetCategory | null>(null);
@@ -47,6 +57,38 @@ export default function AddAssetScreen() {
   const [name, setName] = useState('');
   const [value, setValue] = useState(0);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [plaidAccountId, setPlaidAccountId] = useState<string | null>(null);
+
+  // Pre-fill from Plaid data if coming from account linking
+  useEffect(() => {
+    if (params.plaidAccountId) {
+      setPlaidAccountId(params.plaidAccountId);
+      
+      // Pre-fill name from Plaid
+      if (params.plaidName) {
+        setName(params.plaidName);
+      }
+      
+      // Pre-fill balance from Plaid (auto-sync the value!)
+      if (params.plaidBalance) {
+        const balance = parseFloat(params.plaidBalance);
+        if (!isNaN(balance)) {
+          setValue(Math.abs(balance)); // Use absolute value for assets
+        }
+      }
+      
+      // Pre-select category if provided
+      if (params.plaidCategory) {
+        const matchingCategory = ASSET_CATEGORIES.find(
+          c => c.value === params.plaidCategory
+        );
+        if (matchingCategory) {
+          setCategory(matchingCategory.value);
+          setStep('details'); // Skip to details since we have category
+        }
+      }
+    }
+  }, [params.plaidAccountId, params.plaidName, params.plaidCategory, params.plaidBalance]);
 
   const handleCategorySelect = (cat: AssetCategory) => {
     setCategory(cat);
@@ -106,11 +148,27 @@ export default function AddAssetScreen() {
     setLocalError(null);
 
     try {
-      await addAsset({
+      const asset = await addAsset({
         category,
         name,
         value,
       });
+      
+      // If this asset was created from a Plaid account, link them
+      if (plaidAccountId && asset?.id) {
+        try {
+          await linkAccount({
+            connected_account_id: plaidAccountId,
+            entity_id: asset.id,
+            entity_type: 'asset',
+          });
+          console.log('[AddAsset] Linked Plaid account to new asset');
+        } catch (linkError: any) {
+          console.error('[AddAsset] Failed to link Plaid account:', linkError);
+          // Don't fail the whole operation if linking fails
+        }
+      }
+      
       router.back();
     } catch (error: any) {
       console.error('Failed to add asset:', error);

@@ -17,8 +17,8 @@ import { useAuthStore } from '../../src/features/auth/store';
 import { formatCurrency, formatPercentage } from '../../src/shared/utils';
 import type { PieChartData } from '../../src/shared/components';
 import { PlaidLinkButton } from '../../src/features/plaid/components/PlaidLinkButton';
-import { AccountLinkingModal } from '../../src/features/plaid/components/AccountLinkingModal';
-// PlaidLinkButton handles Plaid store internally
+import { PlaidAccountsModal } from '../../src/features/plaid/components/PlaidAccountsModal';
+import { usePlaidStore } from '../../src/features/plaid/store';
 import type { PlaidAccountInfo } from '../../src/api/services/plaidService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -47,11 +47,12 @@ export default function DashboardScreen() {
   // Modal state
   const [showAssetModal, setShowAssetModal] = useState(false);
   const [showLiabilityModal, setShowLiabilityModal] = useState(false);
-  const [showAccountLinkingModal, setShowAccountLinkingModal] = useState(false);
-  const [plaidAccountToLink, setPlaidAccountToLink] = useState<PlaidAccountInfo | null>(null);
+  const [showPlaidAccountsModal, setShowPlaidAccountsModal] = useState(false);
+  const [plaidAccountsToLink, setPlaidAccountsToLink] = useState<PlaidAccountInfo[]>([]);
+  const [plaidInstitutionName, setPlaidInstitutionName] = useState<string | undefined>(undefined);
   
-  // Plaid store
-  // PlaidLinkButton now handles token exchange internally
+  // Plaid store for connected accounts count
+  const { connectedAccounts, refreshConnectedAccounts } = usePlaidStore();
 
   const handleLogout = async () => {
     await signOut();
@@ -62,6 +63,7 @@ export default function DashboardScreen() {
   useFocusEffect(
     useCallback(() => {
       refresh();
+      refreshConnectedAccounts();
     }, [])
   );
 
@@ -339,23 +341,37 @@ export default function DashboardScreen() {
 
           {/* Connect Bank Account Button */}
           <Animated.View entering={FadeInUp.delay(300).springify()}>
-            <PlaidLinkButton
-              onSuccess={(publicToken: string, metadata: any) => {
-                console.log('[Dashboard] Plaid Link Success:', publicToken, metadata);
-                // Accounts are already exchanged by PlaidLinkButton and passed in metadata
-                if (metadata.accounts && metadata.accounts.length > 0) {
-                  setPlaidAccountToLink(metadata.accounts[0]);
-                  setShowAccountLinkingModal(true);
-                }
-                refresh(); // Refresh net worth data after linking
-              }}
-              onError={(error: any) => {
-                console.error('[Dashboard] Plaid Link Error:', error);
-              }}
-              onExit={() => {
-                console.log('[Dashboard] Plaid Link exited');
-              }}
-            />
+            <YStack gap={8}>
+              <PlaidLinkButton
+                onSuccess={(publicToken: string, metadata: any) => {
+                  console.log('[Dashboard] Plaid Link Success:', publicToken, metadata);
+                  // Accounts are already exchanged by PlaidLinkButton and passed in metadata
+                  if (metadata.accounts && metadata.accounts.length > 0) {
+                    setPlaidAccountsToLink(metadata.accounts);
+                    setPlaidInstitutionName(metadata.institution?.name);
+                    setShowPlaidAccountsModal(true);
+                  }
+                }}
+                onError={(error: any) => {
+                  console.error('[Dashboard] Plaid Link Error:', error);
+                }}
+                onExit={() => {
+                  console.log('[Dashboard] Plaid Link exited');
+                }}
+              />
+              {/* Connection count indicator - useful for future subscription limits */}
+              {connectedAccounts.length > 0 && (
+                <Pressable onPress={() => router.push('/(main)/connected-accounts')}>
+                  <XStack justifyContent="center" alignItems="center" gap={6}>
+                    <YStack width={8} height={8} borderRadius={4} backgroundColor="#4a7c59" />
+                    <Text fontSize={12} color="#636e72">
+                      {connectedAccounts.length} {connectedAccounts.length === 1 ? 'account' : 'accounts'} connected
+                    </Text>
+                    <Text fontSize={12} color="#1e3a5f">→</Text>
+                  </XStack>
+                </Pressable>
+              )}
+            </YStack>
           </Animated.View>
 
           {/* Quick Actions */}
@@ -532,16 +548,19 @@ export default function DashboardScreen() {
         valueColor="#c75c5c"
       />
 
-      <AccountLinkingModal
-        visible={showAccountLinkingModal}
-        account={plaidAccountToLink}
+      <PlaidAccountsModal
+        visible={showPlaidAccountsModal}
+        accounts={plaidAccountsToLink}
+        institutionName={plaidInstitutionName}
         onClose={() => {
-          setShowAccountLinkingModal(false);
-          setPlaidAccountToLink(null);
+          setShowPlaidAccountsModal(false);
+          setPlaidAccountsToLink([]);
+          setPlaidInstitutionName(undefined);
         }}
         onComplete={() => {
-          setShowAccountLinkingModal(false);
-          setPlaidAccountToLink(null);
+          setShowPlaidAccountsModal(false);
+          setPlaidAccountsToLink([]);
+          setPlaidInstitutionName(undefined);
           refresh(); // Refresh net worth data after linking
         }}
       />

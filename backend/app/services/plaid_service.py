@@ -209,6 +209,68 @@ class PlaidService:
         
         return accounts
     
+    def get_accounts_with_balances(self, access_token: str) -> List[Dict]:
+        """
+        Get all accounts with their current balances.
+        Uses accounts/balance/get which returns both account info and balances.
+        
+        Args:
+            access_token: Plaid access token
+            
+        Returns:
+            List of account dictionaries with balance info
+        """
+        try:
+            request = AccountsBalanceGetRequest(access_token=access_token)
+            response = self.client.accounts_balance_get(request)
+            
+            accounts_data = response.accounts if hasattr(response, 'accounts') else response.get('accounts', []) if isinstance(response, dict) else []
+            
+            accounts = []
+            for account in accounts_data:
+                if hasattr(account, 'account_id'):
+                    # Convert Plaid enum types to strings
+                    account_type = account.type
+                    account_subtype = getattr(account, 'subtype', None)
+                    
+                    # Get balance info
+                    balances = account.balances if hasattr(account, 'balances') else None
+                    current_balance = None
+                    if balances:
+                        # For credit/loan accounts, current is the amount owed
+                        # For depository/investment, current is the balance
+                        current_balance = getattr(balances, 'current', None)
+                        if current_balance is None:
+                            current_balance = getattr(balances, 'available', None)
+                    
+                    accounts.append({
+                        'account_id': account.account_id,
+                        'name': account.name,
+                        'type': account_type.value if hasattr(account_type, 'value') else str(account_type),
+                        'subtype': account_subtype.value if hasattr(account_subtype, 'value') else str(account_subtype) if account_subtype else None,
+                        'mask': getattr(account, 'mask', None),
+                        'current_balance': current_balance,
+                    })
+                else:
+                    # Dict format fallback
+                    balances = account.get('balances', {}) if isinstance(account, dict) else {}
+                    current_balance = balances.get('current') or balances.get('available')
+                    
+                    accounts.append({
+                        'account_id': account.get('account_id') or account.get('accountId'),
+                        'name': account.get('name'),
+                        'type': account.get('type'),
+                        'subtype': account.get('subtype'),
+                        'mask': account.get('mask'),
+                        'current_balance': current_balance,
+                    })
+            
+            return accounts
+        except Exception as e:
+            print(f"[get_accounts_with_balances] Error: {e}")
+            # Fallback to regular accounts without balance
+            return self.get_accounts(access_token)
+    
     def get_balance(self, access_token: str, account_id: str) -> Optional[Dict]:
         """
         Get current balance for a specific account.

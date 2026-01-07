@@ -71,8 +71,8 @@ def exchange_public_token(
         access_token = token_data['access_token']
         item_id = token_data['item_id']
         
-        # Get accounts from Plaid
-        plaid_accounts = plaid_service.get_accounts(access_token)
+        # Get accounts with balances from Plaid
+        plaid_accounts = plaid_service.get_accounts_with_balances(access_token)
         
         # Get item/institution info (simplified - you may need to enhance this)
         # For Phase 1, we'll use a placeholder. In Phase 2, we can fetch actual institution name
@@ -113,6 +113,7 @@ def exchange_public_token(
                 mask=plaid_account.get('mask'),
                 suggested_category=category,
                 is_asset=is_asset,
+                current_balance=plaid_account.get('current_balance'),
             ))
         
         return account_infos

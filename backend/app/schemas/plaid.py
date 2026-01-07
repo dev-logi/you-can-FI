@@ -72,4 +72,5 @@ class PlaidAccountInfo(BaseModel):
     mask: Optional[str]  # Last 4 digits
     suggested_category: Optional[str]  # Our category suggestion
     is_asset: bool  # True if asset, False if liability
+    current_balance: Optional[float] = None  # Current balance from Plaid
 

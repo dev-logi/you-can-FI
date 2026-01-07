@@ -58,7 +58,7 @@ class SyncResponse(BaseModel):
 
 class LinkAccountRequest(BaseModel):
     """Request to link a Plaid account to an existing asset/liability."""
-    connected_account_id: str
+    # Note: connected_account_id is passed in URL path, not body
     entity_id: str  # Asset or Liability ID
     entity_type: str = Field(..., pattern="^(asset|liability)$")  # 'asset' or 'liability'
 

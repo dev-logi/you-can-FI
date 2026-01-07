@@ -11,6 +11,7 @@ import { Modal, Pressable, KeyboardAvoidingView, Platform, ScrollView } from 're
 import { YStack, XStack, Text } from 'tamagui';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useRouter } from 'expo-router';
 
 import { Button, Card } from '../../../shared/components';
 import { usePlaidStore } from '../store';
@@ -31,10 +32,12 @@ export function AccountLinkingModal({
   onClose,
   onComplete,
 }: AccountLinkingModalProps) {
+  const router = useRouter();
   const { linkAccount, isLoading } = usePlaidStore();
   const { assets, liabilities } = useNetWorthStore();
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   const [action, setAction] = useState<'link' | 'create'>('link');
+  const [error, setError] = useState<string | null>(null);
 
   if (!account) return null;
 
@@ -46,23 +49,52 @@ export function AccountLinkingModal({
   const handleLink = async () => {
     if (!selectedEntityId || !account) return;
 
+    setError(null);
     try {
+      console.log('[AccountLinkingModal] Linking account:', {
+        connected_account_id: account.account_id,
+        entity_id: selectedEntityId,
+        entity_type: account.is_asset ? 'asset' : 'liability',
+      });
       const request: LinkAccountRequest = {
         connected_account_id: account.account_id,
         entity_id: selectedEntityId,
         entity_type: account.is_asset ? 'asset' : 'liability',
       };
       await linkAccount(request);
+      console.log('[AccountLinkingModal] Link successful');
       onComplete();
-    } catch (error) {
-      console.error('[AccountLinkingModal] Link error:', error);
+    } catch (err: any) {
+      console.error('[AccountLinkingModal] Link error:', err);
+      // Handle different error formats (string, array of validation errors, etc.)
+      let errorMessage = 'Failed to link account';
+      if (typeof err?.detail === 'string') {
+        errorMessage = err.detail;
+      } else if (Array.isArray(err?.detail) && err.detail.length > 0) {
+        errorMessage = err.detail[0]?.msg || 'Validation error';
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+      setError(errorMessage);
     }
   };
 
   const handleCreate = () => {
-    // Navigate to add asset/liability screen with pre-filled data
-    // This will be handled by the parent component
-    onComplete();
+    // Close the modal first
+    onClose();
+    
+    // Navigate to add asset/liability screen with pre-filled Plaid data
+    const route = account.is_asset ? '/(main)/add-asset' : '/(main)/add-liability';
+    router.push({
+      pathname: route,
+      params: {
+        plaidAccountId: account.account_id,
+        plaidName: account.name,
+        plaidCategory: account.suggested_category || '',
+        plaidType: account.type || '',
+        plaidSubtype: account.subtype || '',
+      },
+    });
   };
 
   return (
@@ -220,6 +252,11 @@ export function AccountLinkingModal({
 
             {/* Footer */}
             <YStack padding={24} gap={12} borderTopWidth={1} borderTopColor="#e0e0e0" backgroundColor="#ffffff">
+              {error && (
+                <Text fontSize={12} color="#c75c5c" textAlign="center">
+                  {error}
+                </Text>
+              )}
               {action === 'link' ? (
                 <Button
                   variant="primary"

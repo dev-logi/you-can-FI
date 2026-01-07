@@ -28,7 +28,7 @@ export default function HouseholdScreen() {
 
     // answerQuestion already saves the household type, no need for separate call
     await answerQuestion(QUESTION_IDS.HOUSEHOLD, selected);
-    router.push('/(onboarding)/assets/cash');
+    router.push('/(onboarding)/setup-method');
   };
 
   return (

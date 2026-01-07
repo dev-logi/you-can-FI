@@ -221,32 +221,41 @@ class PlaidService:
             Dictionary with balance information or None if error
         """
         try:
-            request = AccountsBalanceGetRequest(
-                access_token=access_token,
-                account_ids=[account_id]
-            )
+            # Get all balances without filtering (more reliable in sandbox)
+            request = AccountsBalanceGetRequest(access_token=access_token)
             response = self.client.accounts_balance_get(request)
+            
+            print(f"[get_balance] Looking for account_id: {account_id}")
             
             # Plaid SDK v9.0+ returns an object, not a dict
             accounts_data = response.accounts if hasattr(response, 'accounts') else response.get('accounts', []) if isinstance(response, dict) else []
             
-            if accounts_data:
-                account = accounts_data[0]
-                # Handle both object and dict formats
-                if hasattr(account, 'balances'):
-                    balances = account.balances
-                    return {
-                        'available': getattr(balances, 'available', None),
-                        'current': getattr(balances, 'current', None),
-                        'limit': getattr(balances, 'limit', None),
-                    }
-                else:
-                    balances = account.get('balances', {}) if isinstance(account, dict) else {}
-                    return {
-                        'available': balances.get('available') if isinstance(balances, dict) else None,
-                        'current': balances.get('current') if isinstance(balances, dict) else None,
-                        'limit': balances.get('limit') if isinstance(balances, dict) else None,
-                    }
+            print(f"[get_balance] Got {len(accounts_data)} accounts from Plaid")
+            
+            # Find the specific account
+            for account in accounts_data:
+                acc_id = account.account_id if hasattr(account, 'account_id') else account.get('account_id')
+                print(f"[get_balance] Checking account: {acc_id}")
+                
+                if acc_id == account_id:
+                    # Handle both object and dict formats
+                    if hasattr(account, 'balances'):
+                        balances = account.balances
+                        return {
+                            'available': getattr(balances, 'available', None),
+                            'current': getattr(balances, 'current', None),
+                            'limit': getattr(balances, 'limit', None),
+                        }
+                    else:
+                        balances = account.get('balances', {}) if isinstance(account, dict) else {}
+                        return {
+                            'available': balances.get('available') if isinstance(balances, dict) else None,
+                            'current': balances.get('current') if isinstance(balances, dict) else None,
+                            'limit': balances.get('limit') if isinstance(balances, dict) else None,
+                        }
+            
+            print(f"[get_balance] Account {account_id} not found in response")
+            return None
         except Exception as e:
             print(f"[get_balance] Error fetching balance: {e}")
             print(f"[get_balance] Account ID: {account_id}")

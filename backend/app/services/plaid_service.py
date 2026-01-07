@@ -248,7 +248,12 @@ class PlaidService:
                         'limit': balances.get('limit') if isinstance(balances, dict) else None,
                     }
         except Exception as e:
-            print(f"Error fetching balance: {e}")
+            print(f"[get_balance] Error fetching balance: {e}")
+            print(f"[get_balance] Account ID: {account_id}")
+            print(f"[get_balance] Access token (first 20 chars): {access_token[:20]}...")
+            # Log full error details if it's a Plaid error
+            if hasattr(e, 'body'):
+                print(f"[get_balance] Plaid error body: {e.body}")
             return None
         
         return None

@@ -115,9 +115,11 @@ class AccountSyncService:
             return False, error_msg
         
         # Get balance from Plaid
+        print(f"[sync_account] Fetching balance for plaid_account_id: {account.plaid_account_id}")
         balance_info = plaid_service.get_balance(access_token, account.plaid_account_id)
         if not balance_info:
-            error_msg = "Failed to fetch balance from Plaid"
+            error_msg = f"Failed to fetch balance from Plaid for account {account.plaid_account_id}"
+            print(f"[sync_account] {error_msg}")
             connected_account_repository.update(db, account.id, {
                 'last_sync_error': error_msg
             }, user_id)

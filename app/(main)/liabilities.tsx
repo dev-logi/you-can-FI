@@ -2,6 +2,7 @@
  * Liabilities List Screen
  * 
  * Shows all liabilities with edit/delete functionality.
+ * Supports connecting existing liabilities to Plaid for auto-sync.
  */
 
 import React, { useState } from 'react';
@@ -15,6 +16,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Button, Card, Input, CurrencyInput } from '../../src/shared/components';
 import { useNetWorthStore } from '../../src/features/netWorth/store';
 import { usePlaidStore } from '../../src/features/plaid/store';
+import { LinkExistingModal } from '../../src/features/plaid/components/LinkExistingModal';
 import { getLiabilityCategoryLabel } from '../../src/features/netWorth/service';
 import { Liability, LiabilityCategory } from '../../src/shared/types';
 import { formatCurrency, formatPercentage, calculatePercentage } from '../../src/shared/utils';
@@ -27,6 +29,9 @@ export default function LiabilitiesScreen() {
   const [editName, setEditName] = useState('');
   const [editBalance, setEditBalance] = useState(0);
   const [editInterestRate, setEditInterestRate] = useState('');
+  
+  // State for linking existing liability to Plaid
+  const [linkingLiability, setLinkingLiability] = useState<Liability | null>(null);
 
   const handleEdit = (liability: Liability) => {
     setEditingLiability(liability);
@@ -203,7 +208,7 @@ export default function LiabilitiesScreen() {
                                 )}
                               </YStack>
                               <XStack gap={8}>
-                                {liability.isConnected && liability.connectedAccountId && (
+                                {liability.isConnected && liability.connectedAccountId ? (
                                   <Pressable
                                     onPress={() => handleSync(liability)}
                                     disabled={isPlaidLoading}
@@ -214,6 +219,12 @@ export default function LiabilitiesScreen() {
                                       opacity={isPlaidLoading ? 0.5 : 1}
                                     >
                                       {isPlaidLoading ? 'Syncing...' : 'Sync'}
+                                    </Text>
+                                  </Pressable>
+                                ) : (
+                                  <Pressable onPress={() => setLinkingLiability(liability)}>
+                                    <Text fontSize={14} color="#4a7c59">
+                                      Connect
                                     </Text>
                                   </Pressable>
                                 )}
@@ -346,6 +357,19 @@ export default function LiabilitiesScreen() {
           </YStack>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Link Existing Liability to Plaid Modal */}
+      <LinkExistingModal
+        visible={linkingLiability !== null}
+        entityId={linkingLiability?.id ?? ''}
+        entityName={linkingLiability?.name ?? ''}
+        entityType="liability"
+        onClose={() => setLinkingLiability(null)}
+        onSuccess={() => {
+          setLinkingLiability(null);
+          refresh();
+        }}
+      />
     </SafeAreaView>
   );
 }

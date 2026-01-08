@@ -2,7 +2,10 @@
  * Plaid Accounts Modal
  * 
  * Shows ALL accounts returned from Plaid after linking.
- * Lets user handle each account: link to existing, create new, or skip.
+ * Simplified flow: Create new entry or Skip.
+ * 
+ * Note: Linking to existing assets/liabilities is done from the 
+ * Assets/Liabilities list screens via "Connect Bank" on individual cards.
  * 
  * Future subscription consideration:
  * - Free tier: limit to 3 connections, show upgrade prompt when exceeded
@@ -17,9 +20,8 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 
 import { Button, Card } from '../../../shared/components';
-import { usePlaidStore } from '../store';
 import { useNetWorthStore } from '../../netWorth/store';
-import type { PlaidAccountInfo, LinkAccountRequest } from '../../../api/services/plaidService';
+import type { PlaidAccountInfo } from '../../../api/services/plaidService';
 import { formatCurrency } from '../../../shared/utils';
 
 interface PlaidAccountsModalProps {
@@ -30,13 +32,11 @@ interface PlaidAccountsModalProps {
   onComplete: () => void;
 }
 
-type AccountAction = 'link' | 'create' | 'skip' | null;
+type AccountAction = 'create' | 'skip' | null;
 
 interface AccountState {
   action: AccountAction;
-  selectedEntityId: string | null;
   isProcessed: boolean;
-  error: string | null;
 }
 
 export function PlaidAccountsModal({
@@ -47,8 +47,7 @@ export function PlaidAccountsModal({
   onComplete,
 }: PlaidAccountsModalProps) {
   const router = useRouter();
-  const { linkAccount, isLoading } = usePlaidStore();
-  const { assets, liabilities, refresh } = useNetWorthStore();
+  const { refresh } = useNetWorthStore();
   
   // Track state for each account
   const [accountStates, setAccountStates] = useState<Record<string, AccountState>>(() => {
@@ -56,16 +55,13 @@ export function PlaidAccountsModal({
     accounts.forEach(acc => {
       initial[acc.account_id] = {
         action: null,
-        selectedEntityId: null,
         isProcessed: false,
-        error: null,
       };
     });
     return initial;
   });
   
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isProcessing, setIsProcessing] = useState(false);
 
   // Reset state when accounts change
   React.useEffect(() => {
@@ -74,9 +70,7 @@ export function PlaidAccountsModal({
       accounts.forEach(acc => {
         initial[acc.account_id] = {
           action: null,
-          selectedEntityId: null,
           isProcessed: false,
-          error: null,
         };
       });
       setAccountStates(initial);
@@ -90,59 +84,13 @@ export function PlaidAccountsModal({
   const currentState = accountStates[currentAccount?.account_id];
   const processedCount = Object.values(accountStates).filter(s => s.isProcessed).length;
   const totalAccounts = accounts.length;
-
-  // Get matching entities for linking
-  const getMatchingEntities = (account: PlaidAccountInfo) => {
-    if (account.is_asset) {
-      // Show all assets, prioritize matching category
-      const matching = assets.filter(a => a.category === account.suggested_category);
-      const others = assets.filter(a => a.category !== account.suggested_category);
-      return { matching, others, isAsset: true };
-    } else {
-      const matching = liabilities.filter(l => l.category === account.suggested_category);
-      const others = liabilities.filter(l => l.category !== account.suggested_category);
-      return { matching, others, isAsset: false };
-    }
-  };
-
-  const { matching: matchingEntities, others: otherEntities, isAsset } = 
-    currentAccount ? getMatchingEntities(currentAccount) : { matching: [], others: [], isAsset: true };
+  const isAsset = currentAccount?.is_asset ?? true;
 
   const updateAccountState = (accountId: string, updates: Partial<AccountState>) => {
     setAccountStates(prev => ({
       ...prev,
       [accountId]: { ...prev[accountId], ...updates },
     }));
-  };
-
-  const handleLinkExisting = async () => {
-    if (!currentState?.selectedEntityId || !currentAccount) return;
-    
-    setIsProcessing(true);
-    updateAccountState(currentAccount.account_id, { error: null });
-    
-    try {
-      const request: LinkAccountRequest = {
-        connected_account_id: currentAccount.account_id,
-        entity_id: currentState.selectedEntityId,
-        entity_type: isAsset ? 'asset' : 'liability',
-      };
-      await linkAccount(request);
-      updateAccountState(currentAccount.account_id, { isProcessed: true });
-      moveToNext();
-    } catch (err: any) {
-      let errorMessage = 'Failed to link account';
-      if (typeof err?.detail === 'string') {
-        errorMessage = err.detail;
-      } else if (Array.isArray(err?.detail) && err.detail.length > 0) {
-        errorMessage = err.detail[0]?.msg || 'Validation error';
-      } else if (err?.message) {
-        errorMessage = err.message;
-      }
-      updateAccountState(currentAccount.account_id, { error: errorMessage });
-    } finally {
-      setIsProcessing(false);
-    }
   };
 
   const handleCreateNew = () => {
@@ -152,6 +100,7 @@ export function PlaidAccountsModal({
     updateAccountState(currentAccount.account_id, { isProcessed: true, action: 'create' });
     
     // Navigate to add screen with Plaid data (including balance)
+    // Pass method=manual to skip the gateway screen since we're coming from Plaid
     const route = isAsset ? '/(main)/add-asset' : '/(main)/add-liability';
     
     // Close modal and navigate
@@ -277,13 +226,13 @@ export function PlaidAccountsModal({
                       </YStack>
                     </XStack>
                     {currentAccount?.current_balance !== undefined && currentAccount?.current_balance !== null && (
-                      <Text fontSize={20} fontWeight="700" color={isAsset ? '#4a7c59' : '#c75c5c'} marginTop={8}>
+                      <Text fontSize={24} fontWeight="700" color={isAsset ? '#4a7c59' : '#c75c5c'} marginTop={8}>
                         {formatCurrency(Math.abs(currentAccount.current_balance))}
                       </Text>
                     )}
                     {currentAccount?.suggested_category && (
                       <Text fontSize={12} color="#1e3a5f" marginTop={4}>
-                        Suggested category: {currentAccount.suggested_category}
+                        Category: {currentAccount.suggested_category.replace(/_/g, ' ')}
                       </Text>
                     )}
                   </YStack>
@@ -293,29 +242,8 @@ export function PlaidAccountsModal({
               {/* Action Selection */}
               <Animated.View entering={FadeInDown.delay(100).springify()}>
                 <Text fontSize={16} fontWeight="600" color="#2d3436" marginBottom={16}>
-                  What would you like to do?
+                  Add this account?
                 </Text>
-
-                {/* Link to Existing Option */}
-                <Pressable
-                  onPress={() => updateAccountState(currentAccount.account_id, { action: 'link' })}
-                >
-                  <Card
-                    marginBottom={12}
-                    backgroundColor={currentState?.action === 'link' ? '#f0f7ff' : '#ffffff'}
-                    borderWidth={currentState?.action === 'link' ? 2 : 1}
-                    borderColor={currentState?.action === 'link' ? '#1e3a5f' : '#e0e0e0'}
-                  >
-                    <YStack gap={4}>
-                      <Text fontSize={16} fontWeight="600" color="#2d3436">
-                        Link to Existing {isAsset ? 'Asset' : 'Liability'}
-                      </Text>
-                      <Text fontSize={14} color="#636e72">
-                        Connect to an entry you've already added
-                      </Text>
-                    </YStack>
-                  </Card>
-                </Pressable>
 
                 {/* Create New Option */}
                 <Pressable
@@ -327,14 +255,17 @@ export function PlaidAccountsModal({
                     borderWidth={currentState?.action === 'create' ? 2 : 1}
                     borderColor={currentState?.action === 'create' ? '#1e3a5f' : '#e0e0e0'}
                   >
-                    <YStack gap={4}>
-                      <Text fontSize={16} fontWeight="600" color="#2d3436">
-                        Create New {isAsset ? 'Asset' : 'Liability'}
-                      </Text>
-                      <Text fontSize={14} color="#636e72">
-                        Add as a new entry with auto-sync
-                      </Text>
-                    </YStack>
+                    <XStack gap={12} alignItems="center">
+                      <Text fontSize={28}>✓</Text>
+                      <YStack flex={1} gap={4}>
+                        <Text fontSize={16} fontWeight="600" color="#2d3436">
+                          Yes, add as {isAsset ? 'Asset' : 'Liability'}
+                        </Text>
+                        <Text fontSize={14} color="#636e72">
+                          Track this account with auto-sync
+                        </Text>
+                      </YStack>
+                    </XStack>
                   </Card>
                 </Pressable>
 
@@ -348,120 +279,20 @@ export function PlaidAccountsModal({
                     borderWidth={currentState?.action === 'skip' ? 2 : 1}
                     borderColor={currentState?.action === 'skip' ? '#c75c5c' : '#e0e0e0'}
                   >
-                    <YStack gap={4}>
-                      <Text fontSize={16} fontWeight="600" color="#636e72">
-                        Skip This Account
-                      </Text>
-                      <Text fontSize={14} color="#636e72">
-                        Don't track this account for now
-                      </Text>
-                    </YStack>
+                    <XStack gap={12} alignItems="center">
+                      <Text fontSize={28}>✗</Text>
+                      <YStack flex={1} gap={4}>
+                        <Text fontSize={16} fontWeight="600" color="#636e72">
+                          Skip this account
+                        </Text>
+                        <Text fontSize={14} color="#636e72">
+                          Don't track this account
+                        </Text>
+                      </YStack>
+                    </XStack>
                   </Card>
                 </Pressable>
               </Animated.View>
-
-              {/* Entity Selection (if linking) */}
-              {currentState?.action === 'link' && (
-                <Animated.View entering={FadeInDown.delay(200).springify()}>
-                  <YStack marginTop={16} gap={12}>
-                    {matchingEntities.length > 0 && (
-                      <>
-                        <Text fontSize={14} fontWeight="600" color="#2d3436">
-                          Suggested matches:
-                        </Text>
-                        {matchingEntities.map(entity => (
-                          <Pressable
-                            key={entity.id}
-                            onPress={() => updateAccountState(currentAccount.account_id, { 
-                              selectedEntityId: entity.id 
-                            })}
-                          >
-                            <Card
-                              backgroundColor={currentState.selectedEntityId === entity.id ? '#f0f7ff' : '#ffffff'}
-                              borderWidth={currentState.selectedEntityId === entity.id ? 2 : 1}
-                              borderColor={currentState.selectedEntityId === entity.id ? '#1e3a5f' : '#e0e0e0'}
-                            >
-                              <XStack justifyContent="space-between" alignItems="center">
-                                <YStack flex={1}>
-                                  <Text fontSize={16} fontWeight="600" color="#2d3436">
-                                    {entity.name}
-                                  </Text>
-                                  <Text fontSize={14} color="#636e72">
-                                    {entity.category}
-                                  </Text>
-                                </YStack>
-                                <Text
-                                  fontSize={16}
-                                  fontWeight="600"
-                                  color={isAsset ? '#4a7c59' : '#c75c5c'}
-                                >
-                                  {formatCurrency(isAsset ? (entity as any).value : (entity as any).balance)}
-                                </Text>
-                              </XStack>
-                            </Card>
-                          </Pressable>
-                        ))}
-                      </>
-                    )}
-
-                    {otherEntities.length > 0 && (
-                      <>
-                        <Text fontSize={14} fontWeight="600" color="#636e72" marginTop={8}>
-                          Other {isAsset ? 'assets' : 'liabilities'}:
-                        </Text>
-                        {otherEntities.map(entity => (
-                          <Pressable
-                            key={entity.id}
-                            onPress={() => updateAccountState(currentAccount.account_id, { 
-                              selectedEntityId: entity.id 
-                            })}
-                          >
-                            <Card
-                              backgroundColor={currentState.selectedEntityId === entity.id ? '#f0f7ff' : '#ffffff'}
-                              borderWidth={currentState.selectedEntityId === entity.id ? 2 : 1}
-                              borderColor={currentState.selectedEntityId === entity.id ? '#1e3a5f' : '#e0e0e0'}
-                            >
-                              <XStack justifyContent="space-between" alignItems="center">
-                                <YStack flex={1}>
-                                  <Text fontSize={16} fontWeight="500" color="#2d3436">
-                                    {entity.name}
-                                  </Text>
-                                  <Text fontSize={14} color="#636e72">
-                                    {entity.category}
-                                  </Text>
-                                </YStack>
-                                <Text
-                                  fontSize={16}
-                                  fontWeight="500"
-                                  color={isAsset ? '#4a7c59' : '#c75c5c'}
-                                >
-                                  {formatCurrency(isAsset ? (entity as any).value : (entity as any).balance)}
-                                </Text>
-                              </XStack>
-                            </Card>
-                          </Pressable>
-                        ))}
-                      </>
-                    )}
-
-                    {matchingEntities.length === 0 && otherEntities.length === 0 && (
-                      <Card variant="highlighted">
-                        <Text fontSize={14} color="#636e72" textAlign="center">
-                          No existing {isAsset ? 'assets' : 'liabilities'} to link to.
-                          Consider creating a new one instead.
-                        </Text>
-                      </Card>
-                    )}
-                  </YStack>
-                </Animated.View>
-              )}
-
-              {/* Error display */}
-              {currentState?.error && (
-                <Text fontSize={12} color="#c75c5c" textAlign="center" marginTop={16}>
-                  {currentState.error}
-                </Text>
-              )}
             </ScrollView>
 
             {/* Footer */}
@@ -472,24 +303,13 @@ export function PlaidAccountsModal({
               borderTopColor="#e0e0e0" 
               backgroundColor="#ffffff"
             >
-              {currentState?.action === 'link' && (
-                <Button
-                  variant="primary"
-                  fullWidth
-                  onPress={handleLinkExisting}
-                  loading={isProcessing || isLoading}
-                  disabled={!currentState.selectedEntityId || isProcessing}
-                >
-                  Link & Continue
-                </Button>
-              )}
               {currentState?.action === 'create' && (
                 <Button
                   variant="primary"
                   fullWidth
                   onPress={handleCreateNew}
                 >
-                  Create & Continue
+                  Add & Continue
                 </Button>
               )}
               {currentState?.action === 'skip' && (

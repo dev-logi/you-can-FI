@@ -2,6 +2,7 @@
  * Assets List Screen
  * 
  * Shows all assets with edit/delete functionality.
+ * Supports connecting existing assets to Plaid for auto-sync.
  */
 
 import React, { useState } from 'react';
@@ -15,6 +16,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Button, Card, Input, CurrencyInput } from '../../src/shared/components';
 import { useNetWorthStore } from '../../src/features/netWorth/store';
 import { usePlaidStore } from '../../src/features/plaid/store';
+import { LinkExistingModal } from '../../src/features/plaid/components/LinkExistingModal';
 import { getAssetCategoryLabel } from '../../src/features/netWorth/service';
 import { Asset, AssetCategory } from '../../src/shared/types';
 import { formatCurrency, formatPercentage, calculatePercentage } from '../../src/shared/utils';
@@ -26,6 +28,9 @@ export default function AssetsScreen() {
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
   const [editName, setEditName] = useState('');
   const [editValue, setEditValue] = useState(0);
+  
+  // State for linking existing asset to Plaid
+  const [linkingAsset, setLinkingAsset] = useState<Asset | null>(null);
 
   const handleEdit = (asset: Asset) => {
     setEditingAsset(asset);
@@ -193,7 +198,7 @@ export default function AssetsScreen() {
                                 )}
                               </YStack>
                               <XStack gap={8}>
-                                {asset.isConnected && asset.connectedAccountId && (
+                                {asset.isConnected && asset.connectedAccountId ? (
                                   <Pressable
                                     onPress={() => handleSync(asset)}
                                     disabled={isPlaidLoading}
@@ -204,6 +209,12 @@ export default function AssetsScreen() {
                                       opacity={isPlaidLoading ? 0.5 : 1}
                                     >
                                       {isPlaidLoading ? 'Syncing...' : 'Sync'}
+                                    </Text>
+                                  </Pressable>
+                                ) : (
+                                  <Pressable onPress={() => setLinkingAsset(asset)}>
+                                    <Text fontSize={14} color="#4a7c59">
+                                      Connect
                                     </Text>
                                   </Pressable>
                                 )}
@@ -327,6 +338,19 @@ export default function AssetsScreen() {
           </YStack>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Link Existing Asset to Plaid Modal */}
+      <LinkExistingModal
+        visible={linkingAsset !== null}
+        entityId={linkingAsset?.id ?? ''}
+        entityName={linkingAsset?.name ?? ''}
+        entityType="asset"
+        onClose={() => setLinkingAsset(null)}
+        onSuccess={() => {
+          setLinkingAsset(null);
+          refresh();
+        }}
+      />
     </SafeAreaView>
   );
 }

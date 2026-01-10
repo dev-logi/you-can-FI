@@ -83,13 +83,14 @@ class PlaidService:
         Raises:
             Exception: If link token creation fails, with detailed error message
         """
-        # Request multiple products to support all account types:
-        # - transactions: Works with most accounts, includes balances (checking, savings)
-        # - investments: For retirement/investment accounts (401k, IRA, HSA, brokerage)
-        # - liabilities: For credit/loan accounts (credit cards, mortgages, student loans)
+        # Products configuration:
+        # - transactions (required): Works with most accounts, includes balances
+        # - investments (optional): Granular holdings data for 401k, IRA, HSA, brokerage
+        # - liabilities (optional): Detailed loan info (APR, payment schedules)
+        # Using optional_products ensures connection succeeds even if bank doesn't support them
         request = LinkTokenCreateRequest(
-            products=[
-                Products('transactions'),
+            products=[Products('transactions')],
+            optional_products=[
                 Products('investments'),
                 Products('liabilities'),
             ],

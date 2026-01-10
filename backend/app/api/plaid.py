@@ -81,7 +81,8 @@ def exchange_public_token(
         # Get the actual institution name from Plaid
         institution_name = plaid_service.get_institution_name(institution_id)
         
-        # Create connected accounts and return account info for linking
+        # Create or update connected accounts and return account info for linking
+        # Use upsert to handle reconnections to the same institution
         account_infos = []
         for plaid_account in plaid_accounts:
             # Map to our category
@@ -93,8 +94,8 @@ def exchange_public_token(
             # Encrypt access token before storing
             encrypted_token = encryption_service.encrypt(access_token)
             
-            # Create connected account record
-            connected_account = connected_account_repository.create(db, {
+            # Upsert connected account record (handles reconnections)
+            connected_account = connected_account_repository.upsert_by_plaid_account_id(db, {
                 'plaid_item_id': item_id,
                 'plaid_access_token': encrypted_token,
                 'plaid_account_id': plaid_account['account_id'],

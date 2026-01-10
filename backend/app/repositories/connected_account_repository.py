@@ -49,6 +49,35 @@ class ConnectedAccountRepository(BaseRepository[ConnectedAccount]):
             ConnectedAccount.plaid_item_id == plaid_item_id
         ).all()
     
+    def get_by_plaid_item_id_and_user(self, db: Session, plaid_item_id: str, user_id: str) -> List[ConnectedAccount]:
+        """Get all connected accounts for a Plaid item belonging to a specific user."""
+        return db.query(ConnectedAccount).filter(
+            ConnectedAccount.plaid_item_id == plaid_item_id,
+            ConnectedAccount.user_id == user_id
+        ).all()
+    
+    def upsert_by_plaid_account_id(self, db: Session, obj_in: dict, user_id: str) -> ConnectedAccount:
+        """
+        Create or update a connected account based on plaid_account_id.
+        If account exists, update it. If not, create it.
+        """
+        plaid_account_id = obj_in.get('plaid_account_id')
+        existing = self.get_by_plaid_account_id(db, plaid_account_id)
+        
+        if existing and existing.user_id == user_id:
+            # Update existing account
+            for field, value in obj_in.items():
+                if value is not None and field != 'id':
+                    setattr(existing, field, value)
+            # Reactivate if it was deactivated
+            existing.is_active = True
+            db.commit()
+            db.refresh(existing)
+            return existing
+        else:
+            # Create new account
+            return self.create(db, obj_in, user_id)
+    
     def get(self, db: Session, id: str, user_id: str) -> Optional[ConnectedAccount]:
         """Get a connected account by ID, ensuring it belongs to the user."""
         return db.query(ConnectedAccount).filter(

@@ -132,7 +132,7 @@ export default function SetupMethodScreen() {
                         </YStack>
                       </XStack>
                       <Text fontSize={14} color="#636e72">
-                        Connect your bank accounts and we'll import your balances automatically
+                        Link your financial accounts and we'll import your balances automatically
                       </Text>
                     </YStack>
                   </XStack>
@@ -257,7 +257,7 @@ export default function SetupMethodScreen() {
             )}
             {selected === 'quick' && !hasConnectedAccounts && connectedAccounts.length === 0 && (
               <Text fontSize={12} color="#636e72" textAlign="center">
-                Click "Connect Bank Account" above to get started
+                Click "Link Financial Accounts" above to get started
               </Text>
             )}
             {!selected && (

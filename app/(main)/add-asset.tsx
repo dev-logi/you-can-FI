@@ -263,7 +263,7 @@ export default function AddAssetScreen() {
                           <Text fontSize={28}>🏦</Text>
                           <YStack flex={1}>
                             <Text fontSize={18} fontWeight="700" color="#1e3a5f">
-                              Connect Bank Account
+                              Link Financial Accounts
                             </Text>
                             <Text fontSize={14} color="#636e72" marginTop={2}>
                               Auto-sync checking, savings, investments & more

@@ -268,7 +268,7 @@ export default function AddLiabilityScreen() {
                           <Text fontSize={28}>🏦</Text>
                           <YStack flex={1}>
                             <Text fontSize={18} fontWeight="700" color="#c75c5c">
-                              Connect Bank Account
+                              Link Financial Accounts
                             </Text>
                             <Text fontSize={14} color="#636e72" marginTop={2}>
                               Auto-sync credit cards, loans & more

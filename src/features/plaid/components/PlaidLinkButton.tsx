@@ -144,7 +144,7 @@ export function PlaidLinkButton({ onSuccess, onError, onExit }: PlaidLinkButtonP
         loading={isLoading || isOpening}
         disabled={isLoading || isOpening}
       >
-        Connect Bank Account
+        Link Financial Accounts
       </Button>
       
       {error && (

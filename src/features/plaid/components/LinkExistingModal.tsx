@@ -145,7 +145,7 @@ export function LinkExistingModal({
           >
             <YStack flex={1}>
               <Text fontSize={20} fontWeight="700" color="#2d3436">
-                Connect Bank Account
+                Link Financial Account
               </Text>
               <Text fontSize={14} color="#636e72" marginTop={4}>
                 Link "{entityName}" to auto-sync
@@ -165,7 +165,7 @@ export function LinkExistingModal({
                       <Text fontSize={48}>🏦</Text>
                       <YStack gap={8} alignItems="center">
                         <Text fontSize={18} fontWeight="600" color="#2d3436" textAlign="center">
-                          Connect your bank to sync {entityName}
+                          Link your account to sync {entityName}
                         </Text>
                         <Text fontSize={14} color="#636e72" textAlign="center">
                           We'll securely connect to your bank and let you choose which account to link.

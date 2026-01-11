@@ -8,6 +8,7 @@ from app.models.asset import Asset
 from app.models.liability import Liability
 from app.models.onboarding import OnboardingState
 from app.models.connected_account import ConnectedAccount
+from app.models.transaction import Transaction
 
-__all__ = ["Asset", "Liability", "OnboardingState", "ConnectedAccount"]
+__all__ = ["Asset", "Liability", "OnboardingState", "ConnectedAccount", "Transaction"]
 

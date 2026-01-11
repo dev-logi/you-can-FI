@@ -28,3 +28,13 @@ except Exception as e:
     print(f"⚠️  WARNING: Failed to load Plaid router: {e}")
     print("   Plaid endpoints will not be available. Check Plaid configuration.")
 
+# Include Transactions router
+try:
+    from app.api import transactions
+    api_router.include_router(transactions.router, prefix="/transactions", tags=["Transactions"])
+    print("✅ Transactions router loaded successfully")
+except ImportError as e:
+    print(f"⚠️  WARNING: Transactions router not available (ImportError: {e})")
+except Exception as e:
+    print(f"⚠️  WARNING: Failed to load Transactions router: {e}")
+

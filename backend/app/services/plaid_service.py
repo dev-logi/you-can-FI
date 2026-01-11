@@ -17,6 +17,7 @@ from plaid.model.accounts_get_request import AccountsGetRequest
 from plaid.model.accounts_balance_get_request import AccountsBalanceGetRequest
 from plaid.model.item_remove_request import ItemRemoveRequest
 from plaid.model.institutions_get_by_id_request import InstitutionsGetByIdRequest
+from plaid.model.transactions_sync_request import TransactionsSyncRequest
 
 from app.config import get_settings
 
@@ -431,6 +432,138 @@ class PlaidService:
         except Exception as e:
             print(f"Error removing item: {e}")
             return False
+    
+    def sync_transactions(self, access_token: str, cursor: Optional[str] = None) -> Dict:
+        """
+        Sync transactions using Plaid's transactions/sync endpoint.
+        
+        This endpoint returns incremental updates (added, modified, removed)
+        and a cursor for pagination. Call repeatedly until has_more is False.
+        
+        Args:
+            access_token: Plaid access token
+            cursor: Cursor from previous sync (None for initial sync)
+            
+        Returns:
+            Dictionary with:
+            - added: List of new transactions
+            - modified: List of modified transactions
+            - removed: List of removed transaction IDs
+            - next_cursor: Cursor for next sync
+            - has_more: Whether more data is available
+        """
+        try:
+            if cursor:
+                request = TransactionsSyncRequest(
+                    access_token=access_token,
+                    cursor=cursor
+                )
+            else:
+                request = TransactionsSyncRequest(
+                    access_token=access_token
+                )
+            
+            response = self.client.transactions_sync(request)
+            
+            # Parse added transactions
+            added = []
+            added_data = getattr(response, 'added', []) if hasattr(response, 'added') else response.get('added', []) if isinstance(response, dict) else []
+            for txn in added_data:
+                added.append(self._parse_transaction(txn))
+            
+            # Parse modified transactions
+            modified = []
+            modified_data = getattr(response, 'modified', []) if hasattr(response, 'modified') else response.get('modified', []) if isinstance(response, dict) else []
+            for txn in modified_data:
+                modified.append(self._parse_transaction(txn))
+            
+            # Parse removed transactions (just IDs)
+            removed = []
+            removed_data = getattr(response, 'removed', []) if hasattr(response, 'removed') else response.get('removed', []) if isinstance(response, dict) else []
+            for txn in removed_data:
+                txn_id = getattr(txn, 'transaction_id', None) if hasattr(txn, 'transaction_id') else txn.get('transaction_id') if isinstance(txn, dict) else None
+                if txn_id:
+                    removed.append(txn_id)
+            
+            # Get next cursor and has_more flag
+            next_cursor = getattr(response, 'next_cursor', None) if hasattr(response, 'next_cursor') else response.get('next_cursor') if isinstance(response, dict) else None
+            has_more = getattr(response, 'has_more', False) if hasattr(response, 'has_more') else response.get('has_more', False) if isinstance(response, dict) else False
+            
+            return {
+                'added': added,
+                'modified': modified,
+                'removed': removed,
+                'next_cursor': next_cursor,
+                'has_more': has_more,
+            }
+            
+        except Exception as e:
+            print(f"[sync_transactions] Error: {e}")
+            if hasattr(e, 'body'):
+                print(f"[sync_transactions] Plaid error body: {e.body}")
+            raise
+    
+    def _parse_transaction(self, txn) -> Dict:
+        """Parse a Plaid transaction object into a dictionary."""
+        if hasattr(txn, 'transaction_id'):
+            # Object format (Plaid SDK v9.0+)
+            # Get personal finance category if available
+            pf_category = getattr(txn, 'personal_finance_category', None)
+            category_primary = None
+            category_detailed = None
+            if pf_category:
+                category_primary = getattr(pf_category, 'primary', None)
+                category_detailed = getattr(pf_category, 'detailed', None)
+            
+            # Get location info
+            location = getattr(txn, 'location', None)
+            location_city = None
+            location_region = None
+            location_country = None
+            if location:
+                location_city = getattr(location, 'city', None)
+                location_region = getattr(location, 'region', None)
+                location_country = getattr(location, 'country', None)
+            
+            return {
+                'plaid_transaction_id': txn.transaction_id,
+                'plaid_account_id': txn.account_id,
+                'amount': txn.amount,
+                'iso_currency_code': getattr(txn, 'iso_currency_code', 'USD'),
+                'date': txn.date,
+                'authorized_date': getattr(txn, 'authorized_date', None),
+                'name': txn.name,
+                'merchant_name': getattr(txn, 'merchant_name', None),
+                'category_primary': category_primary,
+                'category_detailed': category_detailed,
+                'payment_channel': getattr(txn, 'payment_channel', None),
+                'pending': getattr(txn, 'pending', False),
+                'location_city': location_city,
+                'location_region': location_region,
+                'location_country': location_country,
+            }
+        else:
+            # Dict format fallback
+            pf_category = txn.get('personal_finance_category', {}) or {}
+            location = txn.get('location', {}) or {}
+            
+            return {
+                'plaid_transaction_id': txn.get('transaction_id'),
+                'plaid_account_id': txn.get('account_id'),
+                'amount': txn.get('amount'),
+                'iso_currency_code': txn.get('iso_currency_code', 'USD'),
+                'date': txn.get('date'),
+                'authorized_date': txn.get('authorized_date'),
+                'name': txn.get('name'),
+                'merchant_name': txn.get('merchant_name'),
+                'category_primary': pf_category.get('primary'),
+                'category_detailed': pf_category.get('detailed'),
+                'payment_channel': txn.get('payment_channel'),
+                'pending': txn.get('pending', False),
+                'location_city': location.get('city'),
+                'location_region': location.get('region'),
+                'location_country': location.get('country'),
+            }
 
 
 # Singleton instance

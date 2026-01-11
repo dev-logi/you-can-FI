@@ -39,6 +39,9 @@ class ConnectedAccount(Base):
     last_synced_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     last_sync_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
+    # Transaction sync cursor (for incremental sync)
+    transactions_cursor: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
         DateTime, 

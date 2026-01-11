@@ -74,3 +74,34 @@ class PlaidAccountInfo(BaseModel):
     is_asset: bool  # True if asset, False if liability
     current_balance: Optional[float] = None  # Current balance from Plaid
 
+
+class BatchAccountItem(BaseModel):
+    """A single account to create and link in batch operation."""
+    connected_account_id: str  # The Plaid connected account ID
+    name: str
+    category: str
+    is_asset: bool  # True for asset, False for liability
+    value: float  # Balance/value
+
+
+class BatchCreateRequest(BaseModel):
+    """Request to create multiple assets/liabilities and link them to Plaid accounts."""
+    accounts: List[BatchAccountItem]
+
+
+class BatchResultItem(BaseModel):
+    """Result for a single account in batch operation."""
+    connected_account_id: str
+    entity_id: Optional[str] = None
+    entity_type: Optional[str] = None
+    success: bool
+    error: Optional[str] = None
+
+
+class BatchCreateResponse(BaseModel):
+    """Response for batch create operation."""
+    total: int
+    successful: int
+    failed: int
+    results: List[BatchResultItem]
+

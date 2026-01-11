@@ -20,8 +20,8 @@ import { useRouter } from 'expo-router';
 
 import { Button, Card } from '../../../shared/components';
 import { useNetWorthStore } from '../../netWorth/store';
-import { usePlaidStore } from '../store';
-import type { PlaidAccountInfo } from '../../../api/services/plaidService';
+import { PlaidApiService } from '../../../api/services/plaidService';
+import type { PlaidAccountInfo, BatchAccountItem } from '../../../api/services/plaidService';
 import { formatCurrency } from '../../../shared/utils';
 
 interface PlaidAccountsModalProps {
@@ -49,8 +49,7 @@ export function PlaidAccountsModal({
   onComplete,
 }: PlaidAccountsModalProps) {
   const router = useRouter();
-  const { addAsset, addLiability, refresh } = useNetWorthStore();
-  const { linkAccount } = usePlaidStore();
+  const { refresh } = useNetWorthStore();
   
   // Track which accounts are selected (toggled on)
   const [selectedAccounts, setSelectedAccounts] = useState<Set<string>>(new Set());
@@ -105,54 +104,43 @@ export function PlaidAccountsModal({
     const accountsToAdd = accounts.filter(acc => selectedAccounts.has(acc.account_id));
     const newResults: AccountResult[] = [];
 
-    for (let i = 0; i < accountsToAdd.length; i++) {
-      const account = accountsToAdd[i];
-      setProcessingIndex(i);
+    // Use batch API for much faster processing
+    // This reduces N*3 API calls to just 1 call
+    try {
+      const batchItems: BatchAccountItem[] = accountsToAdd.map(account => ({
+        connected_account_id: account.account_id,
+        name: account.name,
+        category: account.suggested_category || 'other',
+        is_asset: account.is_asset,
+        value: Math.abs(account.current_balance || 0),
+      }));
 
-      try {
-        let entityId: string | undefined;
+      console.log('[PlaidAccountsModal] Sending batch create request for', batchItems.length, 'accounts');
+      const batchResponse = await PlaidApiService.batchCreateAccounts({ accounts: batchItems });
+      console.log('[PlaidAccountsModal] Batch create response:', batchResponse);
 
-        if (account.is_asset) {
-          // Create asset
-          const asset = await addAsset({
-            category: (account.suggested_category as any) || 'other',
-            name: account.name,
-            value: Math.abs(account.current_balance || 0),
+      // Map batch results to our AccountResult format
+      for (const result of batchResponse.results) {
+        const account = accountsToAdd.find(acc => acc.account_id === result.connected_account_id);
+        if (account) {
+          newResults.push({
+            account,
+            success: result.success,
+            entityId: result.entity_id,
+            error: result.error,
           });
-          entityId = asset?.id;
-        } else {
-          // Create liability
-          const liability = await addLiability({
-            category: (account.suggested_category as any) || 'other',
-            name: account.name,
-            balance: Math.abs(account.current_balance || 0),
-          });
-          entityId = liability?.id;
         }
-
-        // Link to Plaid account
-        if (entityId) {
-          try {
-            await linkAccount({
-              connected_account_id: account.account_id,
-              entity_id: entityId,
-              entity_type: account.is_asset ? 'asset' : 'liability',
-            });
-          } catch (linkError) {
-            console.error('[PlaidAccountsModal] Failed to link account:', linkError);
-            // Don't fail the whole operation if linking fails
-          }
-        }
-
-        newResults.push({ account, success: true, entityId });
-      } catch (error: any) {
-        console.error('[PlaidAccountsModal] Failed to create:', error);
-        newResults.push({ 
-          account, 
-          success: false, 
-          error: error?.message || 'Failed to create' 
-        });
       }
+    } catch (error: any) {
+      console.error('[PlaidAccountsModal] Batch create failed:', error);
+      // If batch fails, mark all as failed
+      accountsToAdd.forEach(account => {
+        newResults.push({
+          account,
+          success: false,
+          error: error?.message || 'Batch operation failed',
+        });
+      });
     }
 
     // Add skipped accounts to results
@@ -163,7 +151,12 @@ export function PlaidAccountsModal({
 
     setResults(newResults);
     setStep('summary');
-    await refresh();
+    
+    // Only refresh if we had successful additions
+    const hasSuccesses = newResults.some(r => r.success);
+    if (hasSuccesses) {
+      await refresh();
+    }
   };
 
   const handleDone = () => {

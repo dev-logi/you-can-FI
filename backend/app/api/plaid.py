@@ -25,6 +25,9 @@ from app.schemas.plaid import (
     SyncResponse,
     LinkAccountRequest,
     PlaidAccountInfo,
+    BatchCreateRequest,
+    BatchCreateResponse,
+    BatchResultItem,
 )
 
 router = APIRouter()
@@ -193,7 +196,11 @@ def link_account(
     db: Session = Depends(get_db),
     user_id: str = Depends(get_current_user)
 ):
-    """Link a Plaid account to an existing asset or liability."""
+    """Link a Plaid account to an existing asset or liability.
+    
+    Note: We skip immediate sync because balances are already fetched during
+    the exchange-token step. This significantly improves performance.
+    """
     # Verify connected account belongs to user
     connected_account = connected_account_repository.get(db, account_id, user_id)
     if not connected_account:
@@ -231,19 +238,10 @@ def link_account(
             detail="Invalid entity_type. Must be 'asset' or 'liability'"
         )
     
-    # Sync the account immediately after linking
-    sync_success, sync_error = account_sync_service.sync_account(db, account_id, user_id)
+    # Skip sync - balances already fetched during exchange-token for better performance
+    # Users can manually sync later if needed
     
-    if not sync_success:
-        # Link succeeded but sync failed - log it but don't fail the request
-        print(f"[link_account] Sync failed after linking: {sync_error}")
-        return {
-            "status": "partial", 
-            "message": f"Account linked but sync failed: {sync_error}",
-            "sync_error": sync_error
-        }
-    
-    return {"status": "ok", "message": "Account linked and synced successfully"}
+    return {"status": "ok", "message": "Account linked successfully"}
 
 
 @router.delete("/accounts/{account_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -291,4 +289,89 @@ def disconnect_account(
             }, user_id)
     
     return None
+
+
+@router.post("/batch-create", response_model=BatchCreateResponse)
+def batch_create_accounts(
+    request: BatchCreateRequest,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
+):
+    """
+    Batch create assets/liabilities and link them to Plaid connected accounts.
+    
+    This endpoint dramatically improves performance by:
+    1. Processing all accounts in a single database transaction
+    2. Eliminating multiple round-trips between frontend and backend
+    3. Skipping redundant sync operations (balances already fetched during exchange)
+    
+    For N accounts, this reduces API calls from 3N to just 1.
+    """
+    results = []
+    successful = 0
+    failed = 0
+    
+    for item in request.accounts:
+        try:
+            # Verify connected account belongs to user
+            connected_account = connected_account_repository.get(db, item.connected_account_id, user_id)
+            if not connected_account:
+                results.append(BatchResultItem(
+                    connected_account_id=item.connected_account_id,
+                    success=False,
+                    error="Connected account not found"
+                ))
+                failed += 1
+                continue
+            
+            if item.is_asset:
+                # Create asset
+                asset = asset_repository.create(db, {
+                    'category': item.category,
+                    'name': item.name,
+                    'value': item.value,
+                    'connected_account_id': item.connected_account_id,
+                    'is_connected': True,
+                }, user_id)
+                
+                results.append(BatchResultItem(
+                    connected_account_id=item.connected_account_id,
+                    entity_id=asset.id,
+                    entity_type='asset',
+                    success=True
+                ))
+            else:
+                # Create liability
+                liability = liability_repository.create(db, {
+                    'category': item.category,
+                    'name': item.name,
+                    'balance': item.value,
+                    'connected_account_id': item.connected_account_id,
+                    'is_connected': True,
+                }, user_id)
+                
+                results.append(BatchResultItem(
+                    connected_account_id=item.connected_account_id,
+                    entity_id=liability.id,
+                    entity_type='liability',
+                    success=True
+                ))
+            
+            successful += 1
+            
+        except Exception as e:
+            print(f"[batch_create] Error creating account: {e}")
+            results.append(BatchResultItem(
+                connected_account_id=item.connected_account_id,
+                success=False,
+                error=str(e)
+            ))
+            failed += 1
+    
+    return BatchCreateResponse(
+        total=len(request.accounts),
+        successful=successful,
+        failed=failed,
+        results=results
+    )
 

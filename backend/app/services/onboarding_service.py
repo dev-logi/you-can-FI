@@ -329,17 +329,35 @@ class OnboardingService:
     
     def _to_response(self, state) -> OnboardingStateResponse:
         """Convert model to response schema."""
-        return OnboardingStateResponse(
-            id=state.id,
-            current_step_id=state.current_step_id,
-            household_type=state.household_type,
-            answers=json.loads(state.answers_json),
-            tasks=[DataEntryTask(**t) for t in json.loads(state.tasks_json)],
-            completed_task_ids=json.loads(state.completed_task_ids_json),
-            is_complete=state.is_complete,
-            created_at=state.created_at,
-            updated_at=state.updated_at,
-        )
+        import logging
+        logger = logging.getLogger(__name__)
+        try:
+            answers = json.loads(state.answers_json) if state.answers_json else {}
+            tasks_raw = json.loads(state.tasks_json) if state.tasks_json else []
+            completed_task_ids = json.loads(state.completed_task_ids_json) if state.completed_task_ids_json else []
+            
+            # Parse tasks with error handling
+            tasks = []
+            for t in tasks_raw:
+                try:
+                    tasks.append(DataEntryTask(**t))
+                except Exception as task_err:
+                    logger.error(f"[Onboarding] Failed to parse task: {t}, error: {task_err}")
+            
+            return OnboardingStateResponse(
+                id=state.id,
+                current_step_id=state.current_step_id,
+                household_type=state.household_type,
+                answers=answers,
+                tasks=tasks,
+                completed_task_ids=completed_task_ids,
+                is_complete=state.is_complete,
+                created_at=state.created_at,
+                updated_at=state.updated_at,
+            )
+        except Exception as e:
+            logger.error(f"[Onboarding] _to_response error: {e}, state.id={state.id}", exc_info=True)
+            raise
 
 
 # Singleton instance

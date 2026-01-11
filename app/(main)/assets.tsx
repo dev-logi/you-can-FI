@@ -167,71 +167,88 @@ export default function AssetsScreen() {
                         </XStack>
                       </XStack>
                       {categoryAssets.map((asset) => (
-                        <Card key={asset.id} pressable>
-                          <YStack gap={12}>
-                            <XStack justifyContent="space-between" alignItems="center">
-                              <YStack flex={1}>
-                                <XStack gap={8} alignItems="center">
-                                  <Text fontSize={16} fontWeight="600" color="#2d3436">
-                                    {asset.name}
+                        <Pressable 
+                          key={asset.id}
+                          onPress={() => router.push(`/(main)/account-detail?id=${asset.id}&type=asset`)}
+                        >
+                          <Card pressable>
+                            <YStack gap={12}>
+                              <XStack justifyContent="space-between" alignItems="center">
+                                <YStack flex={1}>
+                                  <XStack gap={8} alignItems="center">
+                                    <Text fontSize={16} fontWeight="600" color="#2d3436">
+                                      {asset.name}
+                                    </Text>
+                                    {asset.isConnected && (
+                                      <YStack
+                                        paddingHorizontal={6}
+                                        paddingVertical={2}
+                                        borderRadius={8}
+                                        backgroundColor="#e8f5e9"
+                                      >
+                                        <Text fontSize={10} fontWeight="600" color="#4a7c59">
+                                          SYNCED
+                                        </Text>
+                                      </YStack>
+                                    )}
+                                  </XStack>
+                                  <Text fontSize={20} fontWeight="700" color="#4a7c59">
+                                    {formatCurrency(asset.value)}
                                   </Text>
-                                  {asset.isConnected && (
-                                    <YStack
-                                      paddingHorizontal={6}
-                                      paddingVertical={2}
-                                      borderRadius={8}
-                                      backgroundColor="#e8f5e9"
-                                    >
-                                      <Text fontSize={10} fontWeight="600" color="#4a7c59">
-                                        SYNCED
-                                      </Text>
-                                    </YStack>
+                                  {asset.isConnected && asset.lastSyncedAt && (
+                                    <Text fontSize={11} color="#636e72">
+                                      Last synced: {formatDate(asset.lastSyncedAt)}
+                                    </Text>
                                   )}
-                                </XStack>
-                                <Text fontSize={20} fontWeight="700" color="#4a7c59">
-                                  {formatCurrency(asset.value)}
-                                </Text>
-                                {asset.isConnected && asset.lastSyncedAt && (
-                                  <Text fontSize={11} color="#636e72">
-                                    Last synced: {formatDate(asset.lastSyncedAt)}
-                                  </Text>
-                                )}
-                              </YStack>
-                              <XStack gap={8}>
-                                {asset.isConnected && asset.connectedAccountId ? (
-                                  <Pressable
-                                    onPress={() => handleSync(asset)}
-                                    disabled={isPlaidLoading}
-                                  >
-                                    <Text
-                                      fontSize={14}
-                                      color="#1e3a5f"
-                                      opacity={isPlaidLoading ? 0.5 : 1}
+                                </YStack>
+                                <XStack gap={8}>
+                                  {asset.isConnected && asset.connectedAccountId ? (
+                                    <Pressable
+                                      onPress={(e) => {
+                                        e.stopPropagation();
+                                        handleSync(asset);
+                                      }}
+                                      disabled={isPlaidLoading}
                                     >
-                                      {isPlaidLoading ? 'Syncing...' : 'Sync'}
+                                      <Text
+                                        fontSize={14}
+                                        color="#1e3a5f"
+                                        opacity={isPlaidLoading ? 0.5 : 1}
+                                      >
+                                        {isPlaidLoading ? 'Syncing...' : 'Sync'}
+                                      </Text>
+                                    </Pressable>
+                                  ) : (
+                                    <Pressable onPress={(e) => {
+                                      e.stopPropagation();
+                                      setLinkingAsset(asset);
+                                    }}>
+                                      <Text fontSize={14} color="#4a7c59">
+                                        Connect
+                                      </Text>
+                                    </Pressable>
+                                  )}
+                                  <Pressable onPress={(e) => {
+                                    e.stopPropagation();
+                                    handleEdit(asset);
+                                  }}>
+                                    <Text fontSize={14} color="#1e3a5f">
+                                      Edit
                                     </Text>
                                   </Pressable>
-                                ) : (
-                                  <Pressable onPress={() => setLinkingAsset(asset)}>
-                                    <Text fontSize={14} color="#4a7c59">
-                                      Connect
+                                  <Pressable onPress={(e) => {
+                                    e.stopPropagation();
+                                    handleDelete(asset);
+                                  }}>
+                                    <Text fontSize={14} color="#c75c5c">
+                                      Delete
                                     </Text>
                                   </Pressable>
-                                )}
-                                <Pressable onPress={() => handleEdit(asset)}>
-                                  <Text fontSize={14} color="#1e3a5f">
-                                    Edit
-                                  </Text>
-                                </Pressable>
-                                <Pressable onPress={() => handleDelete(asset)}>
-                                  <Text fontSize={14} color="#c75c5c">
-                                    Delete
-                                  </Text>
-                                </Pressable>
+                                </XStack>
                               </XStack>
-                            </XStack>
-                          </YStack>
-                        </Card>
+                            </YStack>
+                          </Card>
+                        </Pressable>
                       ))}
                     </YStack>
                   );

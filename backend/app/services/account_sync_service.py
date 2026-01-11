@@ -17,16 +17,18 @@ from app.models.connected_account import ConnectedAccount
 
 
 # Mapping from Plaid account types to our categories
+# Note: HSA accounts can come from Plaid as either 'depository' or 'investment' type
 PLAID_TO_ASSET_CATEGORY = {
     ('depository', 'checking'): 'cash',
     ('depository', 'savings'): 'savings',
     ('depository', 'money market'): 'savings',
     ('depository', 'cd'): 'savings',
+    ('depository', 'hsa'): 'retirement_hsa',  # HSA as depository (cash-based HSA)
     ('investment', '401k'): 'retirement_401k',
     ('investment', '403b'): 'retirement_401k',
     ('investment', 'ira'): 'retirement_ira',
     ('investment', 'roth'): 'retirement_roth',
-    ('investment', 'hsa'): 'retirement_hsa',
+    ('investment', 'hsa'): 'retirement_hsa',  # HSA as investment (invested HSA)
     ('investment', 'pension'): 'retirement_pension',
     ('investment', 'brokerage'): 'brokerage',
     ('investment', '529'): 'other',

@@ -56,6 +56,33 @@ export interface LinkAccountRequest {
   entity_type: 'asset' | 'liability';
 }
 
+export interface BatchAccountItem {
+  connected_account_id: string;
+  name: string;
+  category: string;
+  is_asset: boolean;
+  value: number;
+}
+
+export interface BatchCreateRequest {
+  accounts: BatchAccountItem[];
+}
+
+export interface BatchResultItem {
+  connected_account_id: string;
+  entity_id?: string;
+  entity_type?: string;
+  success: boolean;
+  error?: string;
+}
+
+export interface BatchCreateResponse {
+  total: number;
+  successful: number;
+  failed: number;
+  results: BatchResultItem[];
+}
+
 class PlaidApiServiceClass {
   /**
    * Generate a Plaid Link token for the user.
@@ -135,6 +162,23 @@ class PlaidApiServiceClass {
    */
   async disconnectAccount(accountId: string): Promise<void> {
     await ApiClient.delete(`/plaid/accounts/${accountId}`);
+  }
+
+  /**
+   * Batch create assets/liabilities and link them to Plaid accounts.
+   * This is much faster than creating accounts one by one.
+   * For N accounts, this reduces API calls from 3N to just 1.
+   */
+  async batchCreateAccounts(request: BatchCreateRequest): Promise<BatchCreateResponse> {
+    console.log('[PlaidApiService] batchCreateAccounts called with:', request.accounts.length, 'accounts');
+    try {
+      const response = await ApiClient.post<BatchCreateResponse>('/plaid/batch-create', request);
+      console.log('[PlaidApiService] batchCreateAccounts successful:', response);
+      return response;
+    } catch (error: any) {
+      console.error('[PlaidApiService] batchCreateAccounts failed:', error);
+      throw error;
+    }
   }
 }
 

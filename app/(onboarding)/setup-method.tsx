@@ -54,12 +54,26 @@ export default function SetupMethodScreen() {
     }
   };
 
-  const handlePlaidComplete = () => {
+  const handlePlaidComplete = async () => {
     setShowPlaidAccountsModal(false);
     setPlaidAccountsToLink([]);
     setPlaidInstitutionName(undefined);
     setHasConnectedAccounts(true);
-    refresh();
+    
+    // Refresh net worth data
+    await refresh();
+    
+    // Mark onboarding as complete and navigate to Dashboard
+    // User can always add more accounts later from the Dashboard
+    try {
+      const { completeOnboarding } = useOnboardingStore.getState();
+      await completeOnboarding();
+    } catch (error) {
+      console.error('[SetupMethod] Error completing onboarding:', error);
+    }
+    
+    // Navigate to Dashboard
+    router.replace('/(main)');
   };
 
   const handleContinueAfterPlaid = () => {

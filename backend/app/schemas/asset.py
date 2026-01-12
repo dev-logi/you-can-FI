@@ -52,6 +52,11 @@ class AssetUpdate(BaseModel):
 class AssetResponse(AssetBase):
     """Schema for asset response."""
     id: str
+    # Plaid connection fields
+    connected_account_id: Optional[str] = None
+    is_connected: bool = False
+    last_synced_at: Optional[datetime] = None
+    # Timestamps
     created_at: datetime
     updated_at: datetime
     

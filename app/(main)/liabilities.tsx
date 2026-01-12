@@ -172,9 +172,12 @@ export default function LiabilitiesScreen() {
                       {categoryLiabilities.map((liability) => (
                         <Pressable
                           key={liability.id}
-                          onPress={() => router.push(`/(main)/account-detail?id=${liability.id}&type=liability`)}
+                          onPress={() => {
+                            console.log('[Liabilities] Navigating to account-detail:', liability.id);
+                            router.push(`/(main)/account-detail?id=${liability.id}&type=liability`);
+                          }}
                         >
-                          <Card pressable>
+                          <Card>
                             <YStack gap={12}>
                               <XStack justifyContent="space-between" alignItems="center">
                                 <YStack flex={1}>

@@ -26,6 +26,7 @@ export default function MainLayout() {
       <Stack.Screen name="index" />
       <Stack.Screen name="assets" />
       <Stack.Screen name="liabilities" />
+      <Stack.Screen name="account-detail" />
       <Stack.Screen name="connected-accounts" />
       <Stack.Screen 
         name="add-asset" 

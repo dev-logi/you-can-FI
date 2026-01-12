@@ -169,9 +169,12 @@ export default function AssetsScreen() {
                       {categoryAssets.map((asset) => (
                         <Pressable 
                           key={asset.id}
-                          onPress={() => router.push(`/(main)/account-detail?id=${asset.id}&type=asset`)}
+                          onPress={() => {
+                            console.log('[Assets] Navigating to account-detail:', asset.id);
+                            router.push(`/(main)/account-detail?id=${asset.id}&type=asset`);
+                          }}
                         >
-                          <Card pressable>
+                          <Card>
                             <YStack gap={12}>
                               <XStack justifyContent="space-between" alignItems="center">
                                 <YStack flex={1}>

@@ -6,7 +6,7 @@ Represents a user's holding of a security in a specific account.
 
 from datetime import datetime, date
 from typing import Optional
-from sqlalchemy import String, Float, DateTime, ForeignKey
+from sqlalchemy import String, Float, DateTime, Date, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 

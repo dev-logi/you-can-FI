@@ -12,6 +12,7 @@ from app.repositories.connected_account_repository import connected_account_repo
 from app.repositories.asset_repository import asset_repository
 from app.repositories.liability_repository import liability_repository
 from app.services.plaid_service import plaid_service
+from app.services.holding_sync_service import holding_sync_service
 from app.utils.encryption import encryption_service
 from app.models.connected_account import ConnectedAccount
 
@@ -143,6 +144,11 @@ class AccountSyncService:
         try:
             if is_asset:
                 self._create_or_update_asset(db, account, category, balance, user_id)
+                
+                # If it's an investment account, also sync holdings
+                if account.account_type == 'investment':
+                    print(f"[sync_account] Syncing holdings for investment account: {account.id}")
+                    holding_sync_service.sync_holdings_for_account(db, account.id, user_id)
             else:
                 # For liabilities, balance is typically negative (owed amount)
                 # Plaid returns positive values for credit card balances

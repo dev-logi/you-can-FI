@@ -8,6 +8,7 @@ export { NetWorthApiService } from './netWorthService';
 export { OnboardingApiService } from './onboardingService';
 export { PlaidApiService } from './plaidService';
 export { TransactionService } from './transactionService';
+export { HoldingService } from './holdingService';
 export type {
   ConnectedAccount,
   PlaidAccountInfo,
@@ -20,4 +21,10 @@ export type {
   TransactionSyncResponse,
   TransactionFilters,
 } from './transactionService';
+export type {
+  Holding,
+  Security,
+  HoldingListResponse,
+  HoldingSyncResponse,
+} from './holdingService';
 

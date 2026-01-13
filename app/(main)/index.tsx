@@ -344,7 +344,7 @@ export default function DashboardScreen() {
             <YStack gap={8}>
               <PlaidLinkButton
                 onSuccess={(publicToken: string, metadata: any) => {
-                  console.log('[Dashboard] Plaid Link Success:', publicToken, metadata);
+                  console.log('[Dashboard] Plaid Link Success');
                   // Accounts are already exchanged by PlaidLinkButton and passed in metadata
                   if (metadata.accounts && metadata.accounts.length > 0) {
                     setPlaidAccountsToLink(metadata.accounts);

@@ -18,6 +18,8 @@ from plaid.model.accounts_balance_get_request import AccountsBalanceGetRequest
 from plaid.model.item_remove_request import ItemRemoveRequest
 from plaid.model.institutions_get_by_id_request import InstitutionsGetByIdRequest
 from plaid.model.transactions_sync_request import TransactionsSyncRequest
+from plaid.model.investments_holdings_get_request import InvestmentsHoldingsGetRequest
+from plaid.model.investments_transactions_get_request import InvestmentsTransactionsGetRequest
 
 from app.config import get_settings
 
@@ -501,6 +503,59 @@ class PlaidService:
             print(f"[sync_transactions] Error: {e}")
             if hasattr(e, 'body'):
                 print(f"[sync_transactions] Plaid error body: {e.body}")
+            raise
+
+    def get_holdings(self, access_token: str) -> Dict:
+        """
+        Get investment holdings and securities for an item.
+        
+        Args:
+            access_token: Plaid access token
+            
+        Returns:
+            Dictionary with 'holdings' and 'securities'
+        """
+        try:
+            request = InvestmentsHoldingsGetRequest(access_token=access_token)
+            response = self.client.investments_holdings_get(request)
+            
+            # Plaid SDK returns objects
+            holdings = []
+            holdings_data = getattr(response, 'holdings', [])
+            for h in holdings_data:
+                holdings.append({
+                    'account_id': h.account_id,
+                    'security_id': h.security_id,
+                    'institution_price': h.institution_price,
+                    'institution_price_as_of': getattr(h, 'institution_price_as_of', None),
+                    'institution_value': h.institution_value,
+                    'cost_basis': getattr(h, 'cost_basis', None),
+                    'quantity': h.quantity,
+                    'iso_currency_code': getattr(h, 'iso_currency_code', 'USD'),
+                })
+            
+            securities = []
+            securities_data = getattr(response, 'securities', [])
+            for s in securities_data:
+                securities.append({
+                    'security_id': s.security_id,
+                    'name': s.name,
+                    'ticker_symbol': getattr(s, 'ticker_symbol', None),
+                    'is_cash_equivalent': getattr(s, 'is_cash_equivalent', False),
+                    'type': s.type,
+                    'close_price': getattr(s, 'close_price', None),
+                    'close_price_as_of': getattr(s, 'close_price_as_of', None),
+                    'iso_currency_code': getattr(s, 'iso_currency_code', 'USD'),
+                })
+            
+            return {
+                'holdings': holdings,
+                'securities': securities
+            }
+        except Exception as e:
+            print(f"[get_holdings] Error: {e}")
+            if hasattr(e, 'body'):
+                print(f"[get_holdings] Plaid error body: {e.body}")
             raise
     
     def _parse_transaction(self, txn) -> Dict:

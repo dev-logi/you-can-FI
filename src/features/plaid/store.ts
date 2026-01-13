@@ -56,19 +56,28 @@ export const usePlaidStore = create<PlaidStore>((set, get) => ({
 
   // Exchange public token
   exchangePublicToken: async (publicToken: string) => {
+    console.log('[PlaidStore] exchangePublicToken called with publicToken:', publicToken);
     set({ isLoading: true, error: null });
 
     try {
+      console.log('[PlaidStore] Calling PlaidApiService.exchangePublicToken...');
       const accounts = await PlaidApiService.exchangePublicToken(publicToken);
+      console.log('[PlaidStore] Exchange successful, received accounts:', accounts);
       set({ isLoading: false });
       
       // Refresh connected accounts after exchange
+      console.log('[PlaidStore] Refreshing connected accounts...');
       await get().refreshConnectedAccounts();
       
       return accounts;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to exchange token';
       console.error('[PlaidStore] Exchange token error:', error);
+      console.error('[PlaidStore] Error type:', typeof error);
+      console.error('[PlaidStore] Error keys:', Object.keys(error || {}));
+      console.error('[PlaidStore] Error detail:', (error as any)?.detail);
+      console.error('[PlaidStore] Error message:', (error as any)?.message);
+      console.error('[PlaidStore] Error stringified:', JSON.stringify(error, null, 2));
+      const errorMessage = error instanceof Error ? error.message : 'Failed to exchange token';
       set({ error: errorMessage, isLoading: false });
       throw error;
     }

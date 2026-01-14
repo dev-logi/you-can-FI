@@ -600,6 +600,13 @@ function HoldingCard({ holding }: { holding: AggregatedHolding }) {
             <Text fontSize={12} color="#636e72" marginTop={4}>
               {holding.total_quantity.toFixed(3)} shares @ {formatCurrency(holding.average_price)}
             </Text>
+            {/* Single account - show inline */}
+            {holding.accounts_count === 1 && holding.accounts[0] && (
+              <Text fontSize={11} color="#636e72" marginTop={4}>
+                {holding.accounts[0].account_name} • {holding.accounts[0].institution_name}
+              </Text>
+            )}
+            {/* Multiple accounts - expandable */}
             {holding.accounts_count > 1 && (
               <Pressable onPress={() => setShowAccounts(!showAccounts)}>
                 <Text fontSize={11} color="#1e3a5f" marginTop={4}>

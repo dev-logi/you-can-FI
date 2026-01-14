@@ -4,11 +4,11 @@
  * Main view showing net worth and breakdown.
  */
 
-import React, { useCallback, useState, useRef } from 'react';
+import React, { useCallback, useState, useRef, useEffect } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { YStack, XStack, Text, ScrollView } from 'tamagui';
+import { YStack, XStack, Text, ScrollView as TamaguiScrollView } from 'tamagui';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Pressable, RefreshControl, Dimensions, NativeScrollEvent, NativeSyntheticEvent, View } from 'react-native';
+import { Pressable, RefreshControl, Dimensions, NativeScrollEvent, NativeSyntheticEvent, View, ScrollView } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
 import { Button, Card, PieChart, BreakdownCategoriesModal } from '../../src/shared/components';
@@ -20,12 +20,14 @@ import { PlaidLinkButton } from '../../src/features/plaid/components/PlaidLinkBu
 import { PlaidAccountsModal } from '../../src/features/plaid/components/PlaidAccountsModal';
 import { usePlaidStore } from '../../src/features/plaid/store';
 import type { PlaidAccountInfo } from '../../src/api/services/plaidService';
+import { SpendingService, CashFlowSummaryResponse } from '../../src/api/services';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_PADDING = 24;
 const CARD_WIDTH = SCREEN_WIDTH - (CARD_PADDING * 2);
-const SNAP_INTERVAL = SCREEN_WIDTH; // Full screen width for snapping
-const CARD_SPACING = CARD_PADDING * 2; // Space between cards
+const CARD_GAP = 16; // Gap between carousel cards
+const SNAP_INTERVAL = CARD_WIDTH + CARD_GAP; // Snap to each card
+const CARD_SPACING = CARD_PADDING * 2; // Space between cards (for old carousel)
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -42,7 +44,10 @@ export default function DashboardScreen() {
 
   // Carousel state
   const [activeIndex, setActiveIndex] = useState(0);
-  const scrollViewRef = useRef<ScrollView>(null);
+  const carouselRef = useRef<ScrollView>(null);
+
+  // Cash flow data for snapshot card
+  const [cashFlowData, setCashFlowData] = useState<CashFlowSummaryResponse | null>(null);
 
   // Modal state
   const [showAssetModal, setShowAssetModal] = useState(false);
@@ -60,11 +65,22 @@ export default function DashboardScreen() {
   };
 
   // Refresh data when screen is focused
+  // Fetch cash flow data
+  const fetchCashFlow = useCallback(async () => {
+    try {
+      const data = await SpendingService.getCashFlow(1); // Current month only
+      setCashFlowData(data);
+    } catch (err) {
+      console.log('[Dashboard] Cash flow fetch failed (may not have transactions yet)');
+    }
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       refresh();
       refreshConnectedAccounts();
-    }, [])
+      fetchCashFlow();
+    }, [fetchCashFlow])
   );
 
   const netWorthColor = (summary?.netWorth ?? 0) >= 0 ? '#4a7c59' : '#c75c5c';
@@ -108,7 +124,7 @@ export default function DashboardScreen() {
 
   // Handle dot press to scroll to card
   const handleDotPress = (index: number) => {
-    scrollViewRef.current?.scrollTo({
+    carouselRef.current?.scrollTo({
       x: index * SNAP_INTERVAL,
       animated: true,
     });
@@ -170,41 +186,200 @@ export default function DashboardScreen() {
             </XStack>
           </Animated.View>
 
-          {/* Net Worth Card */}
+          {/* Dashboard Carousel */}
           <Animated.View entering={FadeInUp.delay(200).springify()}>
-            <Card>
-              <YStack alignItems="center" gap={12}>
-                <Text fontSize={14} color="#636e72">
-                  NET WORTH
-                </Text>
-                <Text
-                  fontSize={48}
-                  fontWeight="700"
-                  color={netWorthColor}
-                  fontFamily="$heading"
-                >
-                  {formatCurrency(summary?.netWorth ?? 0)}
-                </Text>
-                <XStack gap={24}>
-                  <YStack alignItems="center">
-                    <Text fontSize={12} color="#636e72">
-                      Assets
-                    </Text>
-                    <Text fontSize={16} fontWeight="600" color="#4a7c59">
-                      {formatCurrency(summary?.totalAssets ?? 0)}
-                    </Text>
-                  </YStack>
-                  <YStack alignItems="center">
-                    <Text fontSize={12} color="#636e72">
-                      Liabilities
-                    </Text>
-                    <Text fontSize={16} fontWeight="600" color="#c75c5c">
-                      {formatCurrency(summary?.totalLiabilities ?? 0)}
-                    </Text>
-                  </YStack>
-                </XStack>
-              </YStack>
-            </Card>
+            <YStack gap={12}>
+              <ScrollView
+                ref={carouselRef}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onScroll={handleScroll}
+                scrollEventThrottle={16}
+                decelerationRate="fast"
+                style={{ marginHorizontal: -24 }}
+                contentContainerStyle={{ paddingHorizontal: 24 }}
+              >
+                {/* Card 1: Net Worth */}
+                <View style={{ width: CARD_WIDTH, marginRight: 16 }}>
+                  <Card>
+                    <YStack alignItems="center" gap={12} minHeight={160}>
+                      <Text fontSize={14} color="#636e72">
+                        NET WORTH
+                      </Text>
+                      <Text
+                        fontSize={42}
+                        fontWeight="700"
+                        color={netWorthColor}
+                        fontFamily="$heading"
+                      >
+                        {formatCurrency(summary?.netWorth ?? 0)}
+                      </Text>
+                      <XStack gap={24}>
+                        <YStack alignItems="center">
+                          <Text fontSize={12} color="#636e72">Assets</Text>
+                          <Text fontSize={16} fontWeight="600" color="#4a7c59">
+                            {formatCurrency(summary?.totalAssets ?? 0)}
+                          </Text>
+                        </YStack>
+                        <YStack alignItems="center">
+                          <Text fontSize={12} color="#636e72">Liabilities</Text>
+                          <Text fontSize={16} fontWeight="600" color="#c75c5c">
+                            {formatCurrency(summary?.totalLiabilities ?? 0)}
+                          </Text>
+                        </YStack>
+                      </XStack>
+                    </YStack>
+                  </Card>
+                </View>
+
+                {/* Card 2: Cash Flow Snapshot */}
+                <Pressable onPress={() => router.push('/(main)/spending')} style={{ width: CARD_WIDTH, marginRight: 16 }}>
+                  <Card>
+                    <YStack alignItems="center" gap={12} minHeight={160}>
+                      <Text fontSize={14} color="#636e72">
+                        THIS MONTH
+                      </Text>
+                      {cashFlowData ? (
+                        <>
+                          <Text
+                            fontSize={42}
+                            fontWeight="700"
+                            color={cashFlowData.net_cash_flow >= 0 ? '#4a7c59' : '#c75c5c'}
+                            fontFamily="$heading"
+                          >
+                            {cashFlowData.net_cash_flow >= 0 ? '+' : ''}{formatCurrency(cashFlowData.net_cash_flow)}
+                          </Text>
+                          <XStack gap={20}>
+                            <YStack alignItems="center">
+                              <Text fontSize={12} color="#636e72">Income</Text>
+                              <Text fontSize={14} fontWeight="600" color="#4a7c59">
+                                +{formatCurrency(cashFlowData.total_income)}
+                              </Text>
+                            </YStack>
+                            <YStack alignItems="center">
+                              <Text fontSize={12} color="#636e72">Spent</Text>
+                              <Text fontSize={14} fontWeight="600" color="#c75c5c">
+                                -{formatCurrency(cashFlowData.total_expenses)}
+                              </Text>
+                            </YStack>
+                            <YStack alignItems="center">
+                              <Text fontSize={12} color="#636e72">Saved</Text>
+                              <Text fontSize={14} fontWeight="600" color="#1e3a5f">
+                                {cashFlowData.savings_rate.toFixed(0)}%
+                              </Text>
+                            </YStack>
+                          </XStack>
+                        </>
+                      ) : (
+                        <YStack alignItems="center" gap={8}>
+                          <Text fontSize={32}>💸</Text>
+                          <Text fontSize={14} color="#636e72" textAlign="center">
+                            Connect accounts to see cash flow
+                          </Text>
+                        </YStack>
+                      )}
+                    </YStack>
+                  </Card>
+                </Pressable>
+
+                {/* Card 3: Assets Breakdown */}
+                <Pressable onPress={() => router.push('/(main)/assets')} style={{ width: CARD_WIDTH, marginRight: 16 }}>
+                  <Card>
+                    <YStack gap={8} minHeight={160}>
+                      <XStack justifyContent="space-between" alignItems="center">
+                        <Text fontSize={14} color="#636e72">ASSETS</Text>
+                        <Text fontSize={16} fontWeight="700" color="#4a7c59">
+                          {formatCurrency(summary?.totalAssets ?? 0)}
+                        </Text>
+                      </XStack>
+                      {assetBreakdown.length > 0 ? (
+                        <YStack gap={8} marginTop={8}>
+                          {assetBreakdown.slice(0, 4).map((item, idx) => (
+                            <XStack key={idx} justifyContent="space-between" alignItems="center">
+                              <XStack gap={8} alignItems="center" flex={1}>
+                                <YStack width={10} height={10} borderRadius={5} backgroundColor={item.color} />
+                                <Text fontSize={13} color="#2d3436" numberOfLines={1} flex={1}>
+                                  {item.label}
+                                </Text>
+                              </XStack>
+                              <Text fontSize={13} fontWeight="600" color="#4a7c59">
+                                {formatCurrency(item.value)}
+                              </Text>
+                            </XStack>
+                          ))}
+                          {assetBreakdown.length > 4 && (
+                            <Text fontSize={12} color="#636e72" textAlign="center">
+                              +{assetBreakdown.length - 4} more categories
+                            </Text>
+                          )}
+                        </YStack>
+                      ) : (
+                        <YStack alignItems="center" justifyContent="center" flex={1}>
+                          <Text fontSize={32}>📈</Text>
+                          <Text fontSize={14} color="#636e72">No assets yet</Text>
+                        </YStack>
+                      )}
+                    </YStack>
+                  </Card>
+                </Pressable>
+
+                {/* Card 4: Liabilities Breakdown */}
+                <Pressable onPress={() => router.push('/(main)/liabilities')} style={{ width: CARD_WIDTH }}>
+                  <Card>
+                    <YStack gap={8} minHeight={160}>
+                      <XStack justifyContent="space-between" alignItems="center">
+                        <Text fontSize={14} color="#636e72">LIABILITIES</Text>
+                        <Text fontSize={16} fontWeight="700" color="#c75c5c">
+                          {formatCurrency(summary?.totalLiabilities ?? 0)}
+                        </Text>
+                      </XStack>
+                      {liabilityBreakdown.length > 0 ? (
+                        <YStack gap={8} marginTop={8}>
+                          {liabilityBreakdown.slice(0, 4).map((item, idx) => (
+                            <XStack key={idx} justifyContent="space-between" alignItems="center">
+                              <XStack gap={8} alignItems="center" flex={1}>
+                                <YStack width={10} height={10} borderRadius={5} backgroundColor={item.color} />
+                                <Text fontSize={13} color="#2d3436" numberOfLines={1} flex={1}>
+                                  {item.label}
+                                </Text>
+                              </XStack>
+                              <Text fontSize={13} fontWeight="600" color="#c75c5c">
+                                {formatCurrency(item.value)}
+                              </Text>
+                            </XStack>
+                          ))}
+                          {liabilityBreakdown.length > 4 && (
+                            <Text fontSize={12} color="#636e72" textAlign="center">
+                              +{liabilityBreakdown.length - 4} more categories
+                            </Text>
+                          )}
+                        </YStack>
+                      ) : (
+                        <YStack alignItems="center" justifyContent="center" flex={1}>
+                          <Text fontSize={32}>💳</Text>
+                          <Text fontSize={14} color="#636e72">No liabilities</Text>
+                        </YStack>
+                      )}
+                    </YStack>
+                  </Card>
+                </Pressable>
+              </ScrollView>
+
+              {/* Pagination Dots */}
+              <XStack justifyContent="center" gap={8}>
+                {[0, 1, 2, 3].map((index) => (
+                  <Pressable key={index} onPress={() => handleDotPress(index)}>
+                    <YStack
+                      width={8}
+                      height={8}
+                      borderRadius={4}
+                      backgroundColor={activeIndex === index ? '#1e3a5f' : '#d0d0d0'}
+                    />
+                  </Pressable>
+                ))}
+              </XStack>
+            </YStack>
           </Animated.View>
 
           {/* Breakdown Cards Carousel - HIDDEN TEMPORARILY */}

@@ -9,7 +9,7 @@ from typing import Optional
 from collections import defaultdict
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, extract, case
+from sqlalchemy import func
 
 from app.database import get_db
 from app.auth import get_current_user
@@ -178,30 +178,30 @@ def get_category_detail(
     # Get 6 months of history
     six_months_ago = (today - timedelta(days=180)).replace(day=1)
     
-    historical_txns = db.query(
-        func.to_char(Transaction.date, 'YYYY-MM').label('month'),
-        func.sum(Transaction.amount).label('total'),
-        func.count(Transaction.id).label('count')
-    ).filter(
+    # Fetch all historical transactions and compute in Python
+    historical_txns = db.query(Transaction).filter(
         Transaction.user_id == user_id,
         Transaction.date >= six_months_ago,
         Transaction.is_hidden == False,
         Transaction.pending == False,
         Transaction.amount > 0,
         (Transaction.user_category == category) | (Transaction.category_primary == category)
-    ).group_by(
-        func.to_char(Transaction.date, 'YYYY-MM')
-    ).order_by(
-        func.to_char(Transaction.date, 'YYYY-MM')
     ).all()
+    
+    # Group by month in Python
+    monthly_data = defaultdict(lambda: {'total': 0.0, 'count': 0})
+    for txn in historical_txns:
+        month_key = txn.date.strftime('%Y-%m')
+        monthly_data[month_key]['total'] += txn.amount
+        monthly_data[month_key]['count'] += 1
     
     monthly_trend = [
         MonthlyAmount(
-            month=row.month,
-            amount=round(row.total, 2),
-            transaction_count=row.count
+            month=month,
+            amount=round(data['total'], 2),
+            transaction_count=data['count']
         )
-        for row in historical_txns
+        for month, data in sorted(monthly_data.items())
     ]
     
     # Sub-category breakdown (using category_detailed)
@@ -281,30 +281,32 @@ def get_cashflow_summary(
         for source, data in sorted(income_by_source.items(), key=lambda x: x[1]['amount'], reverse=True)[:5]
     ]
     
-    # Monthly history
-    monthly_data = db.query(
-        func.to_char(Transaction.date, 'YYYY-MM').label('month'),
-        func.sum(case((Transaction.amount < 0, func.abs(Transaction.amount)), else_=0)).label('income'),
-        func.sum(case((Transaction.amount > 0, Transaction.amount), else_=0)).label('expenses'),
-    ).filter(
+    # Monthly history - fetch all transactions and compute in Python
+    history_txns = db.query(Transaction).filter(
         Transaction.user_id == user_id,
         Transaction.date >= history_start,
         Transaction.is_hidden == False,
         Transaction.pending == False,
-    ).group_by(
-        func.to_char(Transaction.date, 'YYYY-MM')
-    ).order_by(
-        func.to_char(Transaction.date, 'YYYY-MM')
     ).all()
     
+    # Group by month in Python
+    monthly_totals = defaultdict(lambda: {'income': 0.0, 'expenses': 0.0})
+    for txn in history_txns:
+        month_key = txn.date.strftime('%Y-%m')
+        if txn.amount < 0:
+            monthly_totals[month_key]['income'] += abs(txn.amount)
+        else:
+            monthly_totals[month_key]['expenses'] += txn.amount
+    
     monthly_history = []
-    for row in monthly_data:
-        income = row.income or 0
-        expenses = row.expenses or 0
+    for month in sorted(monthly_totals.keys()):
+        data = monthly_totals[month]
+        income = data['income']
+        expenses = data['expenses']
         net = income - expenses
         rate = (net / income * 100) if income > 0 else 0
         monthly_history.append(MonthlyCashFlow(
-            month=row.month,
+            month=month,
             income=round(income, 2),
             expenses=round(expenses, 2),
             net=round(net, 2),

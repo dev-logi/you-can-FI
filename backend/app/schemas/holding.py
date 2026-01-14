@@ -58,3 +58,47 @@ class HoldingSyncResponse(BaseModel):
     message: str
     added: int = 0
     securities: int = 0
+
+
+# ========== Global Holdings (Grouped) Schemas ==========
+
+class AccountInfo(BaseModel):
+    """Brief info about an account holding a security."""
+    account_id: str
+    account_name: str
+    institution_name: str
+    quantity: float
+    value: float
+
+
+class AggregatedHolding(BaseModel):
+    """A security aggregated across multiple accounts."""
+    security_id: str
+    security_name: str
+    ticker_symbol: Optional[str] = None
+    security_type: Optional[str] = None
+    is_cash_equivalent: bool = False
+    
+    total_quantity: float
+    total_value: float
+    total_cost_basis: Optional[float] = None
+    average_price: float
+    
+    accounts_count: int
+    accounts: List[AccountInfo]
+
+
+class HoldingGroup(BaseModel):
+    """A group of holdings by security type."""
+    type: str  # e.g., 'equity', 'etf', 'cryptocurrency'
+    display_name: str  # e.g., 'Stocks', 'ETFs & Mutual Funds'
+    total_value: float
+    holdings_count: int
+    holdings: List[AggregatedHolding]
+
+
+class GlobalHoldingsResponse(BaseModel):
+    """Response for all holdings grouped by type."""
+    total_value: float
+    total_holdings: int
+    groups: List[HoldingGroup]

@@ -179,7 +179,7 @@ def get_category_detail(
     six_months_ago = (today - timedelta(days=180)).replace(day=1)
     
     historical_txns = db.query(
-        func.strftime('%Y-%m', Transaction.date).label('month'),
+        func.to_char(Transaction.date, 'YYYY-MM').label('month'),
         func.sum(Transaction.amount).label('total'),
         func.count(Transaction.id).label('count')
     ).filter(
@@ -190,9 +190,9 @@ def get_category_detail(
         Transaction.amount > 0,
         (Transaction.user_category == category) | (Transaction.category_primary == category)
     ).group_by(
-        func.strftime('%Y-%m', Transaction.date)
+        func.to_char(Transaction.date, 'YYYY-MM')
     ).order_by(
-        func.strftime('%Y-%m', Transaction.date)
+        func.to_char(Transaction.date, 'YYYY-MM')
     ).all()
     
     monthly_trend = [
@@ -283,7 +283,7 @@ def get_cashflow_summary(
     
     # Monthly history
     monthly_data = db.query(
-        func.strftime('%Y-%m', Transaction.date).label('month'),
+        func.to_char(Transaction.date, 'YYYY-MM').label('month'),
         func.sum(func.case((Transaction.amount < 0, func.abs(Transaction.amount)), else_=0)).label('income'),
         func.sum(func.case((Transaction.amount > 0, Transaction.amount), else_=0)).label('expenses'),
     ).filter(
@@ -292,9 +292,9 @@ def get_cashflow_summary(
         Transaction.is_hidden == False,
         Transaction.pending == False,
     ).group_by(
-        func.strftime('%Y-%m', Transaction.date)
+        func.to_char(Transaction.date, 'YYYY-MM')
     ).order_by(
-        func.strftime('%Y-%m', Transaction.date)
+        func.to_char(Transaction.date, 'YYYY-MM')
     ).all()
     
     monthly_history = []

@@ -376,24 +376,44 @@ export default function DashboardScreen() {
 
           {/* Quick Actions */}
           <Animated.View entering={FadeInUp.delay(350).springify()}>
-            <XStack gap={12}>
-              <Button
-                flex={1}
-                variant="primary"
-                size="small"
-                onPress={() => router.push('/(main)/add-asset')}
-              >
-                + Add Asset
-              </Button>
-              <Button
-                flex={1}
-                variant="secondary"
-                size="small"
-                onPress={() => router.push('/(main)/add-liability')}
-              >
-                + Add Liability
-              </Button>
-            </XStack>
+            <YStack gap={12}>
+              <XStack gap={12}>
+                <Button
+                  flex={1}
+                  variant="primary"
+                  size="small"
+                  onPress={() => router.push('/(main)/add-asset')}
+                >
+                  + Add Asset
+                </Button>
+                <Button
+                  flex={1}
+                  variant="secondary"
+                  size="small"
+                  onPress={() => router.push('/(main)/add-liability')}
+                >
+                  + Add Liability
+                </Button>
+              </XStack>
+              <Pressable onPress={() => router.push('/(main)/spending')}>
+                <Card>
+                  <XStack justifyContent="space-between" alignItems="center">
+                    <XStack gap={12} alignItems="center">
+                      <Text fontSize={24}>💸</Text>
+                      <YStack>
+                        <Text fontSize={15} fontWeight="600" color="#2d3436">
+                          Spending & Cash Flow
+                        </Text>
+                        <Text fontSize={12} color="#636e72">
+                          Track expenses and income
+                        </Text>
+                      </YStack>
+                    </XStack>
+                    <Text fontSize={16} color="#1e3a5f">→</Text>
+                  </XStack>
+                </Card>
+              </Pressable>
+            </YStack>
           </Animated.View>
 
           {/* Assets Section */}

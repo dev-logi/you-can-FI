@@ -9,6 +9,7 @@ export { OnboardingApiService } from './onboardingService';
 export { PlaidApiService } from './plaidService';
 export { TransactionService } from './transactionService';
 export { HoldingService } from './holdingService';
+export { SpendingService } from './spendingService';
 export type {
   ConnectedAccount,
   PlaidAccountInfo,
@@ -27,4 +28,11 @@ export type {
   HoldingListResponse,
   HoldingSyncResponse,
 } from './holdingService';
-
+export type {
+  CategorySpending,
+  SpendingSummaryResponse,
+  CategoryDetailResponse,
+  CashFlowSummaryResponse,
+  MonthlyCashFlow,
+  IncomeSource,
+} from './spendingService';

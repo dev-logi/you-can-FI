@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.repositories.connected_account_repository import connected_account_repository
 from app.repositories.security_repository import security_repository
 from app.repositories.holding_repository import holding_repository
+from app.repositories.asset_repository import asset_repository
 from app.services.plaid_service import plaid_service
 from app.utils.encryption import encryption_service
 
@@ -75,17 +76,22 @@ class HoldingSyncService:
             # 2. Delete existing holdings for this account (full refresh)
             holding_repository.delete_by_account(db, connected_account_id, user_id)
             
-            # 3. Create new holdings
+            # 3. Create new holdings and track total value
             total_added = 0
+            total_holdings_value = 0.0
+            
             for h_data in sync_result['holdings']:
                 # Only process holdings for this specific account
                 if h_data['account_id'] == account.plaid_account_id:
+                    holding_value = h_data['institution_value'] or 0
+                    total_holdings_value += holding_value
+                    
                     holding_in = {
                         'connected_account_id': connected_account_id,
                         'security_id': security_id_map.get(h_data['security_id']),
                         'institution_price': h_data['institution_price'],
                         'institution_price_as_of': h_data['institution_price_as_of'],
-                        'institution_value': h_data['institution_value'],
+                        'institution_value': holding_value,
                         'cost_basis': h_data['cost_basis'],
                         'quantity': h_data['quantity'],
                         'iso_currency_code': h_data['iso_currency_code'],
@@ -95,6 +101,15 @@ class HoldingSyncService:
                         holding_repository.create(db, holding_in, user_id)
                         total_added += 1
             
+            # 4. Update the linked asset's value to match holdings total
+            linked_asset = asset_repository.get_by_connected_account(db, connected_account_id, user_id)
+            if linked_asset:
+                print(f"[sync_holdings] Updating asset {linked_asset.id} value from {linked_asset.value} to {total_holdings_value}")
+                asset_repository.update(db, linked_asset.id, {
+                    'value': total_holdings_value,
+                    'last_synced_at': datetime.utcnow(),
+                }, user_id)
+            
             # Update account sync status
             connected_account_repository.update(db, connected_account_id, {
                 'last_synced_at': datetime.utcnow(),
@@ -103,7 +118,8 @@ class HoldingSyncService:
             
             return True, {
                 'added': total_added,
-                'securities': len(security_id_map)
+                'securities': len(security_id_map),
+                'total_value': total_holdings_value
             }
             
         except Exception as e:

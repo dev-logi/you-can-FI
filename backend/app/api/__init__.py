@@ -27,6 +27,16 @@ except ImportError as e:
 except Exception as e:
     print(f"⚠️  WARNING: Failed to load Holdings router: {e}")
 
+# Include Spending router
+try:
+    from app.api import spending
+    api_router.include_router(spending.router, prefix="/spending", tags=["Spending"])
+    print("✅ Spending router loaded successfully")
+except ImportError as e:
+    print(f"⚠️  WARNING: Spending router not available (ImportError: {e})")
+except Exception as e:
+    print(f"⚠️  WARNING: Failed to load Spending router: {e}")
+
 # Include Plaid router only if it can be imported (graceful degradation)
 try:
     from app.api import plaid

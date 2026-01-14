@@ -47,7 +47,55 @@ export interface HoldingSyncResponse {
   securities: number;
 }
 
+// ========== Global Holdings (Grouped) Types ==========
+
+export interface AccountInfo {
+  account_id: string;
+  account_name: string;
+  institution_name: string;
+  quantity: number;
+  value: number;
+}
+
+export interface AggregatedHolding {
+  security_id: string;
+  security_name: string;
+  ticker_symbol?: string;
+  security_type?: string;
+  is_cash_equivalent: boolean;
+  
+  total_quantity: number;
+  total_value: number;
+  total_cost_basis?: number;
+  average_price: number;
+  
+  accounts_count: number;
+  accounts: AccountInfo[];
+}
+
+export interface HoldingGroup {
+  type: string;
+  display_name: string;
+  total_value: number;
+  holdings_count: number;
+  holdings: AggregatedHolding[];
+}
+
+export interface GlobalHoldingsResponse {
+  total_value: number;
+  total_holdings: number;
+  groups: HoldingGroup[];
+}
+
 class HoldingServiceClass {
+  /**
+   * Get all holdings for the user, grouped by security type.
+   * Securities held across multiple accounts are aggregated.
+   */
+  async getAllHoldings(): Promise<GlobalHoldingsResponse> {
+    return ApiClient.get<GlobalHoldingsResponse>('/holdings/all');
+  }
+
   /**
    * Get holdings for a specific connected account.
    */

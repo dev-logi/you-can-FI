@@ -77,6 +77,9 @@ export default function AccountDetailScreen() {
           HoldingService.getAccountHoldings(account.connectedAccountId)
         ]);
         
+        console.log('[AccountDetail] Transactions received:', txnResponse.transactions.length);
+        console.log('[AccountDetail] Holdings received:', holdingsResponse.holdings.length);
+        
         setTransactions(txnResponse.transactions);
         setHoldings(holdingsResponse.holdings);
         
@@ -112,11 +115,15 @@ export default function AccountDetailScreen() {
     try {
       console.log('[AccountDetail] Syncing data...');
       
-      // Call sync endpoint (backend handles choosing between transaction vs holdings sync)
-      // Actually we have separate endpoints, but Plaid's investments/transactions
-      // are often returned by regular sync too or require special handling.
-      // For now, let's sync transactions which is already implemented.
-      await TransactionService.syncAccount(account.connectedAccountId);
+      if (isInvestment) {
+        // For investment accounts, sync holdings
+        console.log('[AccountDetail] Syncing holdings for investment account...');
+        await HoldingService.syncAccount(account.connectedAccountId);
+      } else {
+        // For regular accounts, sync transactions
+        console.log('[AccountDetail] Syncing transactions...');
+        await TransactionService.syncAccount(account.connectedAccountId);
+      }
       
       // Refresh data after sync
       await fetchData(false);

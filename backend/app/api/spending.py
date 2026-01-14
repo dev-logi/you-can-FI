@@ -9,7 +9,7 @@ from typing import Optional
 from collections import defaultdict
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, extract
+from sqlalchemy import func, and_, extract, case
 
 from app.database import get_db
 from app.auth import get_current_user
@@ -284,8 +284,8 @@ def get_cashflow_summary(
     # Monthly history
     monthly_data = db.query(
         func.to_char(Transaction.date, 'YYYY-MM').label('month'),
-        func.sum(func.case((Transaction.amount < 0, func.abs(Transaction.amount)), else_=0)).label('income'),
-        func.sum(func.case((Transaction.amount > 0, Transaction.amount), else_=0)).label('expenses'),
+        func.sum(case((Transaction.amount < 0, func.abs(Transaction.amount)), else_=0)).label('income'),
+        func.sum(case((Transaction.amount > 0, Transaction.amount), else_=0)).label('expenses'),
     ).filter(
         Transaction.user_id == user_id,
         Transaction.date >= history_start,

@@ -262,21 +262,21 @@ export default function DashboardScreen() {
                     marginRight: CARD_GAP,
                     borderRadius: 16,
                     overflow: 'hidden',
-                    shadowColor: '#000',
+                    shadowColor: '#2d4a6f',
                     shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.1,
+                    shadowOpacity: 0.2,
                     shadowRadius: 12,
                     elevation: 8,
                   }}
                 >
                   <YStack 
-                    backgroundColor={cashFlowData && cashFlowData.net_cash_flow >= 0 ? '#e8f5e9' : '#ffebee'}
+                    backgroundColor="#2d4a6f"
                     padding={20}
                     minHeight={180}
                   >
                     <XStack alignItems="center" gap={8} marginBottom={12}>
                       <Text fontSize={18}>📊</Text>
-                      <Text fontSize={13} color="#636e72" fontWeight="600" letterSpacing={1}>
+                      <Text fontSize={13} color="rgba(255,255,255,0.7)" fontWeight="600" letterSpacing={1}>
                         THIS MONTH
                       </Text>
                     </XStack>
@@ -285,30 +285,30 @@ export default function DashboardScreen() {
                         <Text
                           fontSize={38}
                           fontWeight="700"
-                          color={cashFlowData.net_cash_flow >= 0 ? '#2e7d32' : '#c62828'}
+                          color={cashFlowData.net_cash_flow >= 0 ? '#7ed6a6' : '#ff9b9b'}
                           fontFamily="$heading"
                           marginBottom={16}
                         >
                           {cashFlowData.net_cash_flow >= 0 ? '+' : ''}{formatCurrency(cashFlowData.net_cash_flow)}
                         </Text>
-                        <XStack gap={16}>
+                        <XStack gap={20}>
                           <YStack>
-                            <Text fontSize={11} color="#636e72">Income</Text>
-                            <Text fontSize={15} fontWeight="600" color="#2e7d32">
+                            <Text fontSize={11} color="rgba(255,255,255,0.6)">Income</Text>
+                            <Text fontSize={15} fontWeight="600" color="#7ed6a6">
                               +{formatCurrency(cashFlowData.total_income)}
                             </Text>
                           </YStack>
                           <YStack>
-                            <Text fontSize={11} color="#636e72">Spent</Text>
-                            <Text fontSize={15} fontWeight="600" color="#c62828">
+                            <Text fontSize={11} color="rgba(255,255,255,0.6)">Spent</Text>
+                            <Text fontSize={15} fontWeight="600" color="#ff9b9b">
                               -{formatCurrency(cashFlowData.total_expenses)}
                             </Text>
                           </YStack>
                           <YStack>
-                            <Text fontSize={11} color="#636e72">
+                            <Text fontSize={11} color="rgba(255,255,255,0.6)">
                               {cashFlowData.savings_rate >= 0 ? 'Saved' : 'Over'}
                             </Text>
-                            <Text fontSize={15} fontWeight="600" color={cashFlowData.savings_rate >= 0 ? '#1565c0' : '#c62828'}>
+                            <Text fontSize={15} fontWeight="600" color={cashFlowData.savings_rate >= 0 ? '#a0d4ff' : '#ff9b9b'}>
                               {cashFlowData.savings_rate >= 0 
                                 ? `${Math.min(cashFlowData.savings_rate, 100).toFixed(0)}%`
                                 : `${Math.abs(Math.max(cashFlowData.savings_rate, -100)).toFixed(0)}%`
@@ -320,7 +320,7 @@ export default function DashboardScreen() {
                     ) : (
                       <YStack alignItems="center" justifyContent="center" flex={1}>
                         <Text fontSize={36}>💸</Text>
-                        <Text fontSize={14} color="#636e72" textAlign="center" marginTop={8}>
+                        <Text fontSize={14} color="rgba(255,255,255,0.7)" textAlign="center" marginTop={8}>
                           Connect accounts to see cash flow
                         </Text>
                       </YStack>
@@ -336,26 +336,26 @@ export default function DashboardScreen() {
                     marginRight: CARD_GAP,
                     borderRadius: 16,
                     overflow: 'hidden',
-                    shadowColor: '#000',
+                    shadowColor: '#1e4a4a',
                     shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.1,
+                    shadowOpacity: 0.2,
                     shadowRadius: 12,
                     elevation: 8,
                   }}
                 >
                   <YStack 
-                    backgroundColor="#f1f8e9"
+                    backgroundColor="#1e4a4a"
                     padding={20}
                     minHeight={180}
                   >
                     <XStack alignItems="center" justifyContent="space-between" marginBottom={12}>
                       <XStack alignItems="center" gap={8}>
                         <Text fontSize={18}>📈</Text>
-                        <Text fontSize={13} color="#636e72" fontWeight="600" letterSpacing={1}>
+                        <Text fontSize={13} color="rgba(255,255,255,0.7)" fontWeight="600" letterSpacing={1}>
                           ASSETS
                         </Text>
                       </XStack>
-                      <Text fontSize={18} fontWeight="700" color="#33691e">
+                      <Text fontSize={18} fontWeight="700" color="#7ed6a6">
                         {formatCurrency(summary?.totalAssets ?? 0)}
                       </Text>
                     </XStack>
@@ -365,24 +365,24 @@ export default function DashboardScreen() {
                           <XStack key={idx} justifyContent="space-between" alignItems="center">
                             <XStack gap={8} alignItems="center" flex={1}>
                               <YStack width={8} height={8} borderRadius={4} backgroundColor={item.color} />
-                              <Text fontSize={13} color="#2d3436" numberOfLines={1} flex={1}>
+                              <Text fontSize={13} color="rgba(255,255,255,0.85)" numberOfLines={1} flex={1}>
                                 {item.label}
                               </Text>
                             </XStack>
-                            <Text fontSize={13} fontWeight="600" color="#33691e">
+                            <Text fontSize={13} fontWeight="600" color="#7ed6a6">
                               {formatCurrency(item.value)}
                             </Text>
                           </XStack>
                         ))}
                         {assetBreakdown.length > 4 && (
-                          <Text fontSize={11} color="#7c8a6e" textAlign="right">
+                          <Text fontSize={11} color="rgba(255,255,255,0.5)" textAlign="right">
                             +{assetBreakdown.length - 4} more →
                           </Text>
                         )}
                       </YStack>
                     ) : (
                       <YStack alignItems="center" justifyContent="center" flex={1}>
-                        <Text fontSize={14} color="#636e72">No assets yet</Text>
+                        <Text fontSize={14} color="rgba(255,255,255,0.7)">No assets yet</Text>
                       </YStack>
                     )}
                   </YStack>
@@ -395,26 +395,26 @@ export default function DashboardScreen() {
                     width: CAROUSEL_CARD_WIDTH,
                     borderRadius: 16,
                     overflow: 'hidden',
-                    shadowColor: '#000',
+                    shadowColor: '#4a2a3a',
                     shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.1,
+                    shadowOpacity: 0.2,
                     shadowRadius: 12,
                     elevation: 8,
                   }}
                 >
                   <YStack 
-                    backgroundColor="#fce4ec"
+                    backgroundColor="#4a2a3a"
                     padding={20}
                     minHeight={180}
                   >
                     <XStack alignItems="center" justifyContent="space-between" marginBottom={12}>
                       <XStack alignItems="center" gap={8}>
                         <Text fontSize={18}>💳</Text>
-                        <Text fontSize={13} color="#636e72" fontWeight="600" letterSpacing={1}>
+                        <Text fontSize={13} color="rgba(255,255,255,0.7)" fontWeight="600" letterSpacing={1}>
                           LIABILITIES
                         </Text>
                       </XStack>
-                      <Text fontSize={18} fontWeight="700" color="#b71c1c">
+                      <Text fontSize={18} fontWeight="700" color="#ff9b9b">
                         {formatCurrency(summary?.totalLiabilities ?? 0)}
                       </Text>
                     </XStack>
@@ -424,24 +424,24 @@ export default function DashboardScreen() {
                           <XStack key={idx} justifyContent="space-between" alignItems="center">
                             <XStack gap={8} alignItems="center" flex={1}>
                               <YStack width={8} height={8} borderRadius={4} backgroundColor={item.color} />
-                              <Text fontSize={13} color="#2d3436" numberOfLines={1} flex={1}>
+                              <Text fontSize={13} color="rgba(255,255,255,0.85)" numberOfLines={1} flex={1}>
                                 {item.label}
                               </Text>
                             </XStack>
-                            <Text fontSize={13} fontWeight="600" color="#b71c1c">
+                            <Text fontSize={13} fontWeight="600" color="#ff9b9b">
                               {formatCurrency(item.value)}
                             </Text>
                           </XStack>
                         ))}
                         {liabilityBreakdown.length > 4 && (
-                          <Text fontSize={11} color="#9e6a6a" textAlign="right">
+                          <Text fontSize={11} color="rgba(255,255,255,0.5)" textAlign="right">
                             +{liabilityBreakdown.length - 4} more →
                           </Text>
                         )}
                       </YStack>
                     ) : (
                       <YStack alignItems="center" justifyContent="center" flex={1}>
-                        <Text fontSize={14} color="#636e72">No liabilities</Text>
+                        <Text fontSize={14} color="rgba(255,255,255,0.7)">No liabilities</Text>
                       </YStack>
                     )}
                   </YStack>

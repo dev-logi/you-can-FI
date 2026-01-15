@@ -8,7 +8,7 @@ import uuid
 from datetime import date
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
+from sqlalchemy import desc, or_, func
 
 from app.models.transaction import Transaction
 from app.repositories.base import BaseRepository
@@ -47,8 +47,10 @@ class TransactionRepository(BaseRepository[Transaction]):
         offset: int = 0,
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
+        category: Optional[str] = None,
+        search: Optional[str] = None,
     ) -> List[Transaction]:
-        """Get all transactions for a user with optional date filtering."""
+        """Get all transactions for a user with optional filtering."""
         query = db.query(Transaction).filter(
             Transaction.user_id == user_id,
             Transaction.is_hidden == False
@@ -58,6 +60,21 @@ class TransactionRepository(BaseRepository[Transaction]):
             query = query.filter(Transaction.date >= start_date)
         if end_date:
             query = query.filter(Transaction.date <= end_date)
+        if category:
+            query = query.filter(
+                or_(
+                    Transaction.category_primary == category,
+                    Transaction.user_category == category
+                )
+            )
+        if search:
+            search_pattern = f"%{search}%"
+            query = query.filter(
+                or_(
+                    Transaction.name.ilike(search_pattern),
+                    Transaction.merchant_name.ilike(search_pattern)
+                )
+            )
         
         return query.order_by(desc(Transaction.date)).offset(offset).limit(limit).all()
     
@@ -70,6 +87,8 @@ class TransactionRepository(BaseRepository[Transaction]):
         offset: int = 0,
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
+        category: Optional[str] = None,
+        search: Optional[str] = None,
     ) -> List[Transaction]:
         """Get all transactions for a specific connected account."""
         query = db.query(Transaction).filter(
@@ -82,6 +101,21 @@ class TransactionRepository(BaseRepository[Transaction]):
             query = query.filter(Transaction.date >= start_date)
         if end_date:
             query = query.filter(Transaction.date <= end_date)
+        if category:
+            query = query.filter(
+                or_(
+                    Transaction.category_primary == category,
+                    Transaction.user_category == category
+                )
+            )
+        if search:
+            search_pattern = f"%{search}%"
+            query = query.filter(
+                or_(
+                    Transaction.name.ilike(search_pattern),
+                    Transaction.merchant_name.ilike(search_pattern)
+                )
+            )
         
         return query.order_by(desc(Transaction.date)).offset(offset).limit(limit).all()
     
@@ -142,18 +176,69 @@ class TransactionRepository(BaseRepository[Transaction]):
         db.commit()
         return result
     
-    def count_by_user(self, db: Session, user_id: str) -> int:
-        """Count total transactions for a user."""
-        return db.query(Transaction).filter(
-            Transaction.user_id == user_id
-        ).count()
+    def count_by_user(
+        self, 
+        db: Session, 
+        user_id: str,
+        category: Optional[str] = None,
+        search: Optional[str] = None,
+    ) -> int:
+        """Count total transactions for a user with optional filters."""
+        query = db.query(Transaction).filter(
+            Transaction.user_id == user_id,
+            Transaction.is_hidden == False
+        )
+        
+        if category:
+            query = query.filter(
+                or_(
+                    Transaction.category_primary == category,
+                    Transaction.user_category == category
+                )
+            )
+        if search:
+            search_pattern = f"%{search}%"
+            query = query.filter(
+                or_(
+                    Transaction.name.ilike(search_pattern),
+                    Transaction.merchant_name.ilike(search_pattern)
+                )
+            )
+        
+        return query.count()
     
-    def count_by_connected_account(self, db: Session, connected_account_id: str, user_id: str) -> int:
-        """Count transactions for a connected account."""
-        return db.query(Transaction).filter(
+    def count_by_connected_account(
+        self, 
+        db: Session, 
+        connected_account_id: str, 
+        user_id: str,
+        category: Optional[str] = None,
+        search: Optional[str] = None,
+    ) -> int:
+        """Count transactions for a connected account with optional filters."""
+        query = db.query(Transaction).filter(
             Transaction.connected_account_id == connected_account_id,
-            Transaction.user_id == user_id
-        ).count()
+            Transaction.user_id == user_id,
+            Transaction.is_hidden == False
+        )
+        
+        if category:
+            query = query.filter(
+                or_(
+                    Transaction.category_primary == category,
+                    Transaction.user_category == category
+                )
+            )
+        if search:
+            search_pattern = f"%{search}%"
+            query = query.filter(
+                or_(
+                    Transaction.name.ilike(search_pattern),
+                    Transaction.merchant_name.ilike(search_pattern)
+                )
+            )
+        
+        return query.count()
     
     def update(self, db: Session, id: str, obj_in: dict, user_id: str) -> Optional[Transaction]:
         """Update a transaction, ensuring it belongs to the user."""
@@ -168,6 +253,49 @@ class TransactionRepository(BaseRepository[Transaction]):
         db.commit()
         db.refresh(transaction)
         return transaction
+    
+    def get_merchant_summary(
+        self,
+        db: Session,
+        user_id: str,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None,
+        limit: int = 50,
+    ) -> List[dict]:
+        """Get spending summary grouped by merchant."""
+        query = db.query(
+            func.coalesce(Transaction.merchant_name, Transaction.name).label('merchant_name'),
+            func.sum(Transaction.amount).label('total_amount'),
+            func.count(Transaction.id).label('transaction_count'),
+            func.max(Transaction.date).label('last_transaction_date'),
+            func.max(Transaction.category_primary).label('category'),
+        ).filter(
+            Transaction.user_id == user_id,
+            Transaction.is_hidden == False,
+            Transaction.amount > 0,  # Only expenses (positive amounts from Plaid)
+        )
+        
+        if start_date:
+            query = query.filter(Transaction.date >= start_date)
+        if end_date:
+            query = query.filter(Transaction.date <= end_date)
+        
+        results = query.group_by(
+            func.coalesce(Transaction.merchant_name, Transaction.name)
+        ).order_by(
+            desc(func.sum(Transaction.amount))
+        ).limit(limit).all()
+        
+        return [
+            {
+                'merchant_name': r.merchant_name or 'Unknown',
+                'total_amount': float(r.total_amount),
+                'transaction_count': r.transaction_count,
+                'last_transaction_date': r.last_transaction_date,
+                'category': r.category,
+            }
+            for r in results
+        ]
 
 
 # Singleton instance

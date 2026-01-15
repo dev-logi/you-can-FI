@@ -23,6 +23,8 @@ from app.schemas.spending import (
     CategoryDetailResponse,
     MonthlyAmount,
     SubCategorySpending,
+    RecurringTransaction,
+    RecurringTransactionsResponse,
 )
 
 router = APIRouter()
@@ -322,4 +324,123 @@ def get_cashflow_summary(
         savings_rate=round(savings_rate, 1),
         income_sources=income_sources,
         monthly_history=monthly_history,
+    )
+
+
+@router.get("/recurring", response_model=RecurringTransactionsResponse)
+def get_recurring_transactions(
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
+):
+    """
+    Detect recurring transactions (subscriptions, bills, etc.).
+    
+    Analyzes transactions from the last 90 days to find patterns.
+    A transaction is considered recurring if:
+    - Same merchant appears 2+ times
+    - Amounts are similar (within 10% variance)
+    - Appears at regular intervals (weekly, monthly, etc.)
+    """
+    today = date.today()
+    start_date = today - timedelta(days=90)
+    
+    # Get expense transactions
+    transactions = db.query(Transaction).filter(
+        Transaction.user_id == user_id,
+        Transaction.date >= start_date,
+        Transaction.is_hidden == False,
+        Transaction.pending == False,
+        Transaction.amount > 0,  # Only expenses
+    ).order_by(Transaction.date.desc()).all()
+    
+    # Group by merchant
+    merchant_txns = defaultdict(list)
+    for txn in transactions:
+        merchant = txn.merchant_name or txn.name
+        merchant_txns[merchant].append({
+            'date': txn.date,
+            'amount': txn.amount,
+            'category': txn.category_primary,
+        })
+    
+    recurring = []
+    estimated_monthly_total = 0.0
+    
+    # Known subscription categories/keywords
+    subscription_keywords = [
+        'netflix', 'spotify', 'hulu', 'disney', 'amazon prime', 'apple',
+        'google', 'microsoft', 'adobe', 'dropbox', 'gym', 'fitness',
+        'insurance', 'utility', 'electric', 'gas', 'water', 'phone',
+        'internet', 'cable', 'streaming', 'membership', 'subscription'
+    ]
+    
+    for merchant, txns in merchant_txns.items():
+        if len(txns) < 2:
+            continue
+        
+        # Calculate average amount and check variance
+        amounts = [t['amount'] for t in txns]
+        avg_amount = sum(amounts) / len(amounts)
+        
+        # Check if amounts are consistent (within 10%)
+        variance = max(amounts) - min(amounts)
+        if avg_amount > 0 and (variance / avg_amount) > 0.10:
+            # Too much variance, likely not recurring
+            # Unless it's a utility bill (allow more variance)
+            is_utility = any(kw in merchant.lower() for kw in ['utility', 'electric', 'gas', 'water'])
+            if not is_utility:
+                continue
+        
+        # Determine frequency based on dates
+        dates = sorted([t['date'] for t in txns])
+        if len(dates) >= 2:
+            intervals = [(dates[i+1] - dates[i]).days for i in range(len(dates)-1)]
+            avg_interval = sum(intervals) / len(intervals)
+            
+            if avg_interval <= 10:
+                frequency = "weekly"
+                monthly_multiplier = 4
+            elif avg_interval <= 35:
+                frequency = "monthly"
+                monthly_multiplier = 1
+            elif avg_interval <= 100:
+                frequency = "quarterly"
+                monthly_multiplier = 1/3
+            else:
+                frequency = "yearly"
+                monthly_multiplier = 1/12
+            
+            # Calculate next expected date
+            last_date = max(dates)
+            next_date = last_date + timedelta(days=int(avg_interval))
+            
+            # Check if it's a known subscription
+            is_subscription = any(kw in merchant.lower() for kw in subscription_keywords)
+            
+            # Get category info
+            category = txns[0]['category']
+            info = get_category_info(category) if category else {'display': None}
+            
+            recurring.append(RecurringTransaction(
+                merchant_name=merchant,
+                category=category,
+                display_name=info.get('display'),
+                average_amount=round(avg_amount, 2),
+                frequency=frequency,
+                last_date=last_date,
+                next_expected_date=next_date if next_date > today else None,
+                transaction_count=len(txns),
+                is_subscription=is_subscription,
+            ))
+            
+            # Add to monthly total
+            estimated_monthly_total += avg_amount * monthly_multiplier
+    
+    # Sort by amount descending
+    recurring.sort(key=lambda x: x.average_amount, reverse=True)
+    
+    return RecurringTransactionsResponse(
+        recurring=recurring,
+        estimated_monthly_total=round(estimated_monthly_total, 2),
+        count=len(recurring),
     )

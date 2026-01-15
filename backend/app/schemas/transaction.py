@@ -85,3 +85,18 @@ class TransactionUpdateRequest(BaseModel):
     user_category: Optional[str] = None
     user_notes: Optional[str] = None
     is_hidden: Optional[bool] = None
+
+
+class MerchantSummary(BaseModel):
+    """Summary of spending by merchant."""
+    merchant_name: str
+    total_amount: float
+    transaction_count: int
+    last_transaction_date: date
+    category: Optional[str] = None
+
+
+class MerchantListResponse(BaseModel):
+    """Response for merchant list."""
+    merchants: List[MerchantSummary]
+    total: int

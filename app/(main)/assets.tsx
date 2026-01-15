@@ -27,7 +27,7 @@ type ViewMode = 'account' | 'holding';
 export default function AssetsScreen() {
   const router = useRouter();
   const { assets, updateAsset, deleteAsset, isLoading, summary, refresh } = useNetWorthStore();
-  const { syncAccount, isLoading: isPlaidLoading } = usePlaidStore();
+  const { isLoading: isPlaidLoading } = usePlaidStore();
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
   const [editName, setEditName] = useState('');
   const [editValue, setEditValue] = useState(0);
@@ -95,17 +95,6 @@ export default function AssetsScreen() {
         },
       ]
     );
-  };
-
-  const handleSync = async (asset: Asset) => {
-    if (!asset.connectedAccountId) return;
-    try {
-      await syncAccount(asset.connectedAccountId);
-      // Refresh net worth data after sync
-      await refresh();
-    } catch (error) {
-      console.error('[AssetsScreen] Sync error:', error);
-    }
   };
 
   const formatDate = (dateString?: string) => {
@@ -350,23 +339,7 @@ export default function AssetsScreen() {
                                   )}
                                 </YStack>
                                 <XStack gap={8}>
-                                  {asset.isConnected && asset.connectedAccountId ? (
-                                    <Pressable
-                                      onPress={(e) => {
-                                        e.stopPropagation();
-                                        handleSync(asset);
-                                      }}
-                                      disabled={isPlaidLoading}
-                                    >
-                                      <Text
-                                        fontSize={14}
-                                        color="#1e3a5f"
-                                        opacity={isPlaidLoading ? 0.5 : 1}
-                                      >
-                                        {isPlaidLoading ? 'Syncing...' : 'Sync'}
-                                      </Text>
-                                    </Pressable>
-                                  ) : (
+                                  {!asset.isConnected && !asset.connectedAccountId && (
                                     <Pressable onPress={(e) => {
                                       e.stopPropagation();
                                       setLinkingAsset(asset);

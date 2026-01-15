@@ -84,6 +84,33 @@ def list_transactions(
     )
 
 
+@router.get("/merchants", response_model=MerchantListResponse)
+def get_merchants(
+    limit: int = Query(50, ge=1, le=100),
+    start_date: Optional[date] = Query(None, description="Filter transactions from this date"),
+    end_date: Optional[date] = Query(None, description="Filter transactions until this date"),
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
+):
+    """
+    Get spending summary grouped by merchant.
+    
+    Returns merchants sorted by total spending (highest first).
+    Only includes expense transactions (positive amounts).
+    """
+    merchant_data = transaction_repository.get_merchant_summary(
+        db, user_id,
+        start_date=start_date,
+        end_date=end_date,
+        limit=limit
+    )
+    
+    return MerchantListResponse(
+        merchants=[MerchantSummary(**m) for m in merchant_data],
+        total=len(merchant_data)
+    )
+
+
 @router.get("/{transaction_id}", response_model=TransactionResponse)
 def get_transaction(
     transaction_id: str,
@@ -226,31 +253,4 @@ def get_account_transactions(
         total=total,
         limit=limit,
         offset=offset
-    )
-
-
-@router.get("/merchants", response_model=MerchantListResponse)
-def get_merchants(
-    limit: int = Query(50, ge=1, le=100),
-    start_date: Optional[date] = Query(None, description="Filter transactions from this date"),
-    end_date: Optional[date] = Query(None, description="Filter transactions until this date"),
-    db: Session = Depends(get_db),
-    user_id: str = Depends(get_current_user)
-):
-    """
-    Get spending summary grouped by merchant.
-    
-    Returns merchants sorted by total spending (highest first).
-    Only includes expense transactions (positive amounts).
-    """
-    merchant_data = transaction_repository.get_merchant_summary(
-        db, user_id,
-        start_date=start_date,
-        end_date=end_date,
-        limit=limit
-    )
-    
-    return MerchantListResponse(
-        merchants=[MerchantSummary(**m) for m in merchant_data],
-        total=len(merchant_data)
     )

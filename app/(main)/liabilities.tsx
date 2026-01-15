@@ -24,7 +24,7 @@ import { formatCurrency, formatPercentage, calculatePercentage } from '../../src
 export default function LiabilitiesScreen() {
   const router = useRouter();
   const { liabilities, updateLiability, deleteLiability, isLoading, summary, refresh } = useNetWorthStore();
-  const { syncAccount, isLoading: isPlaidLoading } = usePlaidStore();
+  const { isLoading: isPlaidLoading } = usePlaidStore();
   const [editingLiability, setEditingLiability] = useState<Liability | null>(null);
   const [editName, setEditName] = useState('');
   const [editBalance, setEditBalance] = useState(0);
@@ -65,17 +65,6 @@ export default function LiabilitiesScreen() {
         },
       ]
     );
-  };
-
-  const handleSync = async (liability: Liability) => {
-    if (!liability.connectedAccountId) return;
-    try {
-      await syncAccount(liability.connectedAccountId);
-      // Refresh net worth data after sync
-      await refresh();
-    } catch (error) {
-      console.error('[LiabilitiesScreen] Sync error:', error);
-    }
   };
 
   const formatDate = (dateString?: string) => {
@@ -216,21 +205,10 @@ export default function LiabilitiesScreen() {
                                 </YStack>
                                 <XStack gap={8}>
                                   {liability.isConnected && liability.connectedAccountId ? (
-                                    <Pressable
-                                      onPress={(e) => {
-                                        e.stopPropagation();
-                                        handleSync(liability);
-                                      }}
-                                      disabled={isPlaidLoading}
-                                    >
-                                      <Text
-                                        fontSize={14}
-                                        color="#1e3a5f"
-                                        opacity={isPlaidLoading ? 0.5 : 1}
-                                      >
-                                        {isPlaidLoading ? 'Syncing...' : 'Sync'}
-                                      </Text>
-                                    </Pressable>
+                                    <XStack alignItems="center" gap={4}>
+                                      <YStack width={6} height={6} borderRadius={3} backgroundColor="#4a7c59" />
+                                      <Text fontSize={12} color="#636e72">Synced</Text>
+                                    </XStack>
                                   ) : (
                                     <Pressable onPress={(e) => {
                                       e.stopPropagation();

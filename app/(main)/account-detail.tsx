@@ -46,7 +46,7 @@ export default function AccountDetailScreen() {
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [activeTab, setActiveTab] = useState<'transactions' | 'holdings'>('transactions');
   const [isLoading, setIsLoading] = useState(true);
-  const [isSyncing, setIsSyncing] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   
@@ -105,37 +105,25 @@ export default function AccountDetailScreen() {
     }
   }, [account?.connectedAccountId, isInvestment]);
   
-  // Sync data from Plaid
-  const handleSync = async () => {
-    if (!account?.connectedAccountId) return;
+  // Refresh data from database (not Plaid - to avoid API costs)
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchData(false);
+    setIsRefreshing(false);
+  };
+  
+  // Format last synced date
+  const formatLastSynced = (dateStr?: string) => {
+    if (!dateStr) return 'Never synced';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
     
-    setIsSyncing(true);
-    setError(null);
-    
-    try {
-      console.log('[AccountDetail] Syncing data...');
-      
-      if (isInvestment) {
-        // For investment accounts, sync holdings
-        console.log('[AccountDetail] Syncing holdings for investment account...');
-        await HoldingService.syncAccount(account.connectedAccountId);
-      } else {
-        // For regular accounts, sync transactions
-        console.log('[AccountDetail] Syncing transactions...');
-        await TransactionService.syncAccount(account.connectedAccountId);
-      }
-      
-      // Refresh data after sync
-      await fetchData(false);
-      
-      // Also refresh net worth in case balance changed
-      await refreshNetWorth();
-    } catch (err: any) {
-      console.error('[AccountDetail] Sync error:', err);
-      setError(err?.message || 'Failed to sync data');
-    } finally {
-      setIsSyncing(false);
-    }
+    if (diffDays > 0) return `${diffDays}d ago`;
+    if (diffHours > 0) return `${diffHours}h ago`;
+    return 'Just now';
   };
   
   // Load data on mount
@@ -251,16 +239,13 @@ export default function AccountDetailScreen() {
                   )}
                 </XStack>
                 
-                {isConnected && (
-                  <Button
-                    variant="secondary"
-                    size="small"
-                    onPress={handleSync}
-                    loading={isSyncing}
-                    disabled={isSyncing}
-                  >
-                    {isSyncing ? 'Syncing...' : '↻ Sync Data'}
-                  </Button>
+                {isConnected && account?.lastSyncedAt && (
+                  <XStack alignItems="center" gap={6}>
+                    <YStack width={8} height={8} borderRadius={4} backgroundColor="#4a7c59" />
+                    <Text fontSize={12} color="#636e72">
+                      Synced {formatLastSynced(account.lastSyncedAt)}
+                    </Text>
+                  </XStack>
                 )}
               </YStack>
             </Card>
@@ -350,11 +335,8 @@ export default function AccountDetailScreen() {
                 <YStack alignItems="center" padding={24} gap={12}>
                   <Text fontSize={40}>📭</Text>
                   <Text fontSize={14} color="#636e72" textAlign="center">
-                    No transactions yet. Tap "Sync Data" to fetch from your bank.
+                    No transactions yet. Data syncs automatically once daily.
                   </Text>
-                  <Button variant="primary" size="small" onPress={handleSync} loading={isSyncing}>
-                    Sync Now
-                  </Button>
                 </YStack>
               </Card>
             </YStack>
@@ -365,8 +347,8 @@ export default function AccountDetailScreen() {
               contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 100 }}
               refreshControl={
                 <RefreshControl
-                  refreshing={isSyncing}
-                  onRefresh={handleSync}
+                  refreshing={isRefreshing}
+                  onRefresh={handleRefresh}
                   tintColor="#1e3a5f"
                 />
               }

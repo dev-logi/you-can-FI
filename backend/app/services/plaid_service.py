@@ -91,6 +91,10 @@ class PlaidService:
         # - investments (optional): Granular holdings data for 401k, IRA, HSA, brokerage
         # - liabilities (optional): Detailed loan info (APR, payment schedules)
         # Using optional_products ensures connection succeeds even if bank doesn't support them
+        # Note: redirect_uri is NOT included for native mobile apps
+        # The react-native-plaid-link-sdk handles OAuth flow internally
+        # Plaid requires HTTPS for redirect_uri in production, which requires Universal Links setup
+        # By omitting it, the SDK manages OAuth callbacks automatically
         request = LinkTokenCreateRequest(
             products=[Products('transactions')],
             optional_products=[
@@ -100,7 +104,6 @@ class PlaidService:
             client_name="You Can FI",
             country_codes=[CountryCode('US')],
             language='en',
-            redirect_uri='youcanfi://plaid-oauth',  # Required for OAuth banks (Chase, etc.)
             user=LinkTokenCreateRequestUser(
                 client_user_id=user_id
             )

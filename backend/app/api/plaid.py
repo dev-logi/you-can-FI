@@ -15,7 +15,14 @@ from app.repositories.asset_repository import asset_repository
 from app.repositories.liability_repository import liability_repository
 from app.services.plaid_service import plaid_service
 from app.services.account_sync_service import account_sync_service
+from app.services.transaction_sync_service import transaction_sync_service
 from app.utils.encryption import encryption_service
+
+# Investment categories that use holdings instead of transactions
+INVESTMENT_CATEGORIES = [
+    'retirement_401k', 'retirement_ira', 'retirement_roth',
+    'retirement_hsa', 'retirement_pension', 'retirement_other', 'brokerage'
+]
 from app.schemas.plaid import (
     LinkTokenResponse,
     ExchangeTokenRequest,
@@ -367,6 +374,25 @@ def batch_create_accounts(
                 error=str(e)
             ))
             failed += 1
+    
+    # Sync transactions for non-investment accounts immediately
+    # This gives users transaction data right after connecting
+    # Investment accounts use holdings, not transactions
+    for item in request.accounts:
+        # Skip investment accounts (they use holdings, not transactions)
+        if item.category in INVESTMENT_CATEGORIES:
+            print(f"[batch_create] Skipping transaction sync for investment account: {item.name}")
+            continue
+        
+        try:
+            print(f"[batch_create] Syncing transactions for: {item.name}")
+            transaction_sync_service.sync_transactions_for_account(
+                db, item.connected_account_id, user_id
+            )
+            print(f"[batch_create] Transaction sync complete for: {item.name}")
+        except Exception as e:
+            # Log but don't fail the whole operation if transaction sync fails
+            print(f"[batch_create] Transaction sync error for {item.name}: {e}")
     
     return BatchCreateResponse(
         total=len(request.accounts),

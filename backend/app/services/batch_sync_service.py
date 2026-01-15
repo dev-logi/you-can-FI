@@ -13,7 +13,7 @@ from sqlalchemy import distinct
 from app.models.connected_account import ConnectedAccount
 from app.services.account_sync_service import account_sync_service
 from app.services.transaction_sync_service import transaction_sync_service
-from app.services import holding_sync_service
+from app.services.holding_sync_service import holding_sync_service
 
 
 class BatchSyncService:

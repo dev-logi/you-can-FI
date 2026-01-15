@@ -105,13 +105,13 @@ def apple_app_site_association():
                 "apps": [],
                 "details": [
                     {
-                        "appID": "XXXXXXXXXX.com.youcanfi.app",  # Replace XXXXXXXXXX with your Apple Team ID
+                        "appID": "27LQF7AJRB.com.youcanfi.app",  # Replace XXXXXXXXXX with your Apple Team ID
                         "paths": ["/oauth/*", "/plaid-oauth/*"]
                     }
                 ]
             },
             "webcredentials": {
-                "apps": ["XXXXXXXXXX.com.youcanfi.app"]  # Replace XXXXXXXXXX with your Apple Team ID
+                "apps": ["27LQF7AJRB.com.youcanfi.app"]  # Replace XXXXXXXXXX with your Apple Team ID
             }
         },
         media_type="application/json"

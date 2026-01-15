@@ -204,12 +204,7 @@ export default function LiabilitiesScreen() {
                                   )}
                                 </YStack>
                                 <XStack gap={8}>
-                                  {liability.isConnected && liability.connectedAccountId ? (
-                                    <XStack alignItems="center" gap={4}>
-                                      <YStack width={6} height={6} borderRadius={3} backgroundColor="#4a7c59" />
-                                      <Text fontSize={12} color="#636e72">Synced</Text>
-                                    </XStack>
-                                  ) : (
+                                  {!liability.isConnected && !liability.connectedAccountId && (
                                     <Pressable onPress={(e) => {
                                       e.stopPropagation();
                                       setLinkingLiability(liability);

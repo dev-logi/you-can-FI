@@ -339,12 +339,7 @@ export default function AssetsScreen() {
                                   )}
                                 </YStack>
                                 <XStack gap={8}>
-                                  {asset.isConnected && asset.connectedAccountId ? (
-                                    <XStack alignItems="center" gap={4}>
-                                      <YStack width={6} height={6} borderRadius={3} backgroundColor="#4a7c59" />
-                                      <Text fontSize={12} color="#636e72">Synced</Text>
-                                    </XStack>
-                                  ) : (
+                                  {!asset.isConnected && !asset.connectedAccountId && (
                                     <Pressable onPress={(e) => {
                                       e.stopPropagation();
                                       setLinkingAsset(asset);

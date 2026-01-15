@@ -749,38 +749,6 @@ export default function DashboardScreen() {
             </YStack>
           </Animated.View>
 
-          {/* Phase 2/3 Preview Cards */}
-          <Animated.View entering={FadeInUp.delay(650).springify()}>
-            <YStack gap={12}>
-              <Card variant="highlighted">
-                <XStack gap={12} alignItems="center">
-                  <Text fontSize={32}>📊</Text>
-                  <YStack flex={1}>
-                    <Text fontSize={16} fontWeight="600" color="#2d3436">
-                      Budget & Spending
-                    </Text>
-                    <Text fontSize={14} color="#636e72">
-                      Coming in Phase 2
-                    </Text>
-                  </YStack>
-                </XStack>
-              </Card>
-
-              <Card variant="highlighted">
-                <XStack gap={12} alignItems="center">
-                  <Text fontSize={32}>🎯</Text>
-                  <YStack flex={1}>
-                    <Text fontSize={16} fontWeight="600" color="#2d3436">
-                      Financial Independence
-                    </Text>
-                    <Text fontSize={14} color="#636e72">
-                      Coming in Phase 3
-                    </Text>
-                  </YStack>
-                </XStack>
-              </Card>
-            </YStack>
-          </Animated.View>
         </YStack>
       </ScrollView>
 

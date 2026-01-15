@@ -49,4 +49,14 @@ except Exception as e:
     print(f"⚠️  WARNING: Failed to load Plaid router: {e}")
     print("   Plaid endpoints will not be available. Check Plaid configuration.")
 
+# Include Batch Sync router (for scheduled jobs)
+try:
+    from app.api import batch
+    api_router.include_router(batch.router, prefix="/batch", tags=["Batch Sync"])
+    print("✅ Batch Sync router loaded successfully")
+except ImportError as e:
+    print(f"⚠️  WARNING: Batch Sync router not available (ImportError: {e})")
+except Exception as e:
+    print(f"⚠️  WARNING: Failed to load Batch Sync router: {e}")
+
 

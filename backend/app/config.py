@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     plaid_environment: str = "sandbox"  # 'sandbox', 'development', 'production'
     plaid_encryption_key: str = ""  # For encrypting access tokens
     
+    # Batch Sync API Key (for scheduled jobs)
+    batch_sync_api_key: str = ""  # Set via BATCH_SYNC_API_KEY env var
+    
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

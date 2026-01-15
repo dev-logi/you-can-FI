@@ -1,0 +1,124 @@
+/**
+ * Spending Service
+ * 
+ * Handles API calls for spending analytics and cash flow.
+ */
+
+import { ApiClient } from '../client';
+
+// ========== Types ==========
+
+export interface CategorySpending {
+  category: string;
+  display_name: string;
+  amount: number;
+  percentage: number;
+  transaction_count: number;
+  icon: string;
+}
+
+export interface SpendingSummaryResponse {
+  start_date: string;
+  end_date: string;
+  
+  total_spending: number;
+  total_income: number;
+  net_cash_flow: number;
+  
+  previous_period_spending?: number;
+  spending_change_percent?: number;
+  
+  categories: CategorySpending[];
+  
+  transaction_count: number;
+  category_count: number;
+}
+
+export interface MonthlyAmount {
+  month: string;
+  amount: number;
+  transaction_count: number;
+}
+
+export interface SubCategorySpending {
+  category: string;
+  display_name: string;
+  amount: number;
+  percentage: number;
+  transaction_count: number;
+}
+
+export interface CategoryDetailResponse {
+  category: string;
+  display_name: string;
+  current_amount: number;
+  current_transaction_count: number;
+  monthly_trend: MonthlyAmount[];
+  sub_categories: SubCategorySpending[];
+}
+
+export interface IncomeSource {
+  name: string;
+  amount: number;
+  transaction_count: number;
+}
+
+export interface MonthlyCashFlow {
+  month: string;
+  income: number;
+  expenses: number;
+  net: number;
+  savings_rate: number;
+}
+
+export interface CashFlowSummaryResponse {
+  start_date: string;
+  end_date: string;
+  
+  total_income: number;
+  total_expenses: number;
+  net_cash_flow: number;
+  savings_rate: number;
+  
+  income_sources: IncomeSource[];
+  monthly_history: MonthlyCashFlow[];
+}
+
+// ========== Service ==========
+
+class SpendingServiceClass {
+  /**
+   * Get spending summary for a time period.
+   * Defaults to current month if no dates provided.
+   */
+  async getSummary(startDate?: string, endDate?: string): Promise<SpendingSummaryResponse> {
+    const params = new URLSearchParams();
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    
+    const query = params.toString();
+    return ApiClient.get<SpendingSummaryResponse>(
+      `/spending/summary${query ? `?${query}` : ''}`
+    );
+  }
+
+  /**
+   * Get detailed spending for a specific category.
+   */
+  async getCategoryDetail(category: string): Promise<CategoryDetailResponse> {
+    return ApiClient.get<CategoryDetailResponse>(
+      `/spending/by-category/${encodeURIComponent(category)}`
+    );
+  }
+
+  /**
+   * Get cash flow summary with income vs expenses.
+   */
+  async getCashFlow(months: number = 6): Promise<CashFlowSummaryResponse> {
+    return ApiClient.get<CashFlowSummaryResponse>(
+      `/spending/cashflow?months=${months}`
+    );
+  }
+}
+
+export const SpendingService = new SpendingServiceClass();

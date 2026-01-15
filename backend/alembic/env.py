@@ -19,6 +19,7 @@ from app.database import Base
 from app.models.asset import Asset
 from app.models.liability import Liability
 from app.models.onboarding import OnboardingState
+from app.models.connected_account import ConnectedAccount
 
 # This is the Alembic Config object
 config = context.config

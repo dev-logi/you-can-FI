@@ -46,7 +46,19 @@ def get_or_create_onboarding(
     Get current onboarding state or create new one.
     Use this to start or resume onboarding.
     """
-    return onboarding_service.get_or_create_state(db, user_id)
+    import logging
+    logger = logging.getLogger(__name__)
+    try:
+        logger.info(f"[Onboarding] get_or_create_onboarding for user {user_id}")
+        result = onboarding_service.get_or_create_state(db, user_id)
+        logger.info(f"[Onboarding] Successfully got state: {result.id}")
+        return result
+    except Exception as e:
+        logger.error(f"[Onboarding] Error in get_or_create_onboarding: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get onboarding state: {str(e)}"
+        )
 
 
 @router.get("/status", response_model=StatusResponse)

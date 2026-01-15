@@ -29,6 +29,9 @@ interface LiabilityResponse {
   interest_rate: number | null;
   created_at: string;
   updated_at: string;
+  connected_account_id?: string | null;
+  is_connected?: boolean;
+  last_synced_at?: string | null;
 }
 
 /**
@@ -43,6 +46,9 @@ function toLiability(response: LiabilityResponse): Liability {
     interestRate: response.interest_rate ?? undefined,
     createdAt: response.created_at,
     updatedAt: response.updated_at,
+    connectedAccountId: response.connected_account_id || undefined,
+    isConnected: response.is_connected || false,
+    lastSyncedAt: response.last_synced_at || undefined,
   };
 }
 

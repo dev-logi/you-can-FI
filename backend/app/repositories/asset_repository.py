@@ -88,6 +88,13 @@ class AssetRepository(BaseRepository[Asset]):
         db.delete(asset)
         db.commit()
         return True
+    
+    def get_by_connected_account(self, db: Session, connected_account_id: str, user_id: str) -> Optional[Asset]:
+        """Get an asset linked to a connected account."""
+        return db.query(Asset).filter(
+            Asset.connected_account_id == connected_account_id,
+            Asset.user_id == user_id
+        ).first()
 
 
 # Singleton instance

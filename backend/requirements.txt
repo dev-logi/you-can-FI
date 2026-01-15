@@ -18,3 +18,7 @@ python-dotenv==1.0.1
 # Authentication
 python-jose[cryptography]==3.3.0
 
+# Plaid Integration
+plaid-python>=9.0.0
+cryptography>=41.0.0
+

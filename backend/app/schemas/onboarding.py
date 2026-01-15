@@ -27,12 +27,20 @@ class DataEntryTask(BaseModel):
     entity_id: Optional[str] = None
 
 
+class AnswerData(BaseModel):
+    """Answer data with optional itemization counts."""
+    answer: Union[str, List[str]]
+    count: Optional[int] = None
+    counts: Optional[Dict[str, int]] = None
+
+
 class OnboardingStateResponse(BaseModel):
     """Onboarding state response."""
     id: str
     current_step_id: str
     household_type: Optional[str]
-    answers: Dict[str, Union[str, List[str]]]
+    # Answers can be simple strings/lists or complex dicts with counts
+    answers: Dict[str, Union[str, List[str], AnswerData, Dict]]
     tasks: List[DataEntryTask]
     completed_task_ids: List[str]
     is_complete: bool

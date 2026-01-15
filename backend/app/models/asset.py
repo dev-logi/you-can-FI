@@ -5,7 +5,8 @@ Represents financial assets like bank accounts, investments, real estate, etc.
 """
 
 from datetime import datetime
-from sqlalchemy import String, Float, DateTime
+from typing import Optional
+from sqlalchemy import String, Float, DateTime, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 from app.database import Base
 
@@ -29,6 +30,12 @@ class Asset(Base):
     category: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     value: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    
+    # Plaid integration fields
+    connected_account_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True, index=True)
+    is_connected: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    last_synced_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    
     created_at: Mapped[datetime] = mapped_column(
         DateTime, 
         nullable=False, 

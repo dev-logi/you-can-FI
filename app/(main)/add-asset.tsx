@@ -2,10 +2,11 @@
  * Add Asset Screen
  * 
  * Modal for adding a new asset.
+ * Supports both Plaid (bank connection) and manual entry.
  */
 
-import React, { useState } from 'react';
-import { useRouter } from 'expo-router';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { YStack, XStack, Text, ScrollView } from 'tamagui';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Pressable, KeyboardAvoidingView, Platform } from 'react-native';
@@ -13,9 +14,13 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Button, Card, Input, CurrencyInput, OptionButton, CountInputModal, MultiItemForm, ExistingItemsView } from '../../src/shared/components';
 import { useNetWorthStore } from '../../src/features/netWorth/store';
+import { usePlaidStore } from '../../src/features/plaid/store';
+import { PlaidLinkButton } from '../../src/features/plaid/components/PlaidLinkButton';
+import { PlaidAccountsModal } from '../../src/features/plaid/components/PlaidAccountsModal';
 import { AssetCategory } from '../../src/shared/types';
 import { ASSET_CATEGORY_CONFIG, getAssetCategoryLabel } from '../../src/features/netWorth/service';
 import { isAssetCategoryItemizable, getAssetItemizationLabel, getAssetAdditionalItemizationLabel } from '../../src/shared/utils/itemization';
+import type { PlaidAccountInfo } from '../../src/api/services/plaidService';
 
 const ASSET_CATEGORIES: Array<{ value: AssetCategory; label: string }> = [
   { value: 'cash', label: 'Cash & Checking' },
@@ -38,15 +43,71 @@ const ASSET_CATEGORIES: Array<{ value: AssetCategory; label: string }> = [
 
 export default function AddAssetScreen() {
   const router = useRouter();
-  const { addAsset, isLoading, error, assets } = useNetWorthStore();
+  const params = useLocalSearchParams<{
+    plaidAccountId?: string;
+    plaidName?: string;
+    plaidCategory?: string;
+    plaidType?: string;
+    plaidSubtype?: string;
+    plaidBalance?: string;
+    method?: string; // 'manual' to skip method selection
+  }>();
+  const { addAsset, isLoading, error, assets, refresh } = useNetWorthStore();
+  const { linkAccount, connectedAccounts } = usePlaidStore();
 
-  const [step, setStep] = useState<'category' | 'existing' | 'count' | 'details'>('category');
+  // Determine initial step based on params
+  const getInitialStep = () => {
+    // If coming from Plaid flow with account data, skip to category
+    if (params.plaidAccountId) return 'category';
+    // If method=manual passed, skip method selection
+    if (params.method === 'manual') return 'category';
+    return 'method';
+  };
+
+  const [step, setStep] = useState<'method' | 'category' | 'existing' | 'count' | 'details'>(getInitialStep);
   const [category, setCategory] = useState<AssetCategory | null>(null);
   const [count, setCount] = useState(1);
   const [showCountModal, setShowCountModal] = useState(false);
   const [name, setName] = useState('');
   const [value, setValue] = useState(0);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [plaidAccountId, setPlaidAccountId] = useState<string | null>(null);
+  
+  // Plaid flow state
+  const [showPlaidAccountsModal, setShowPlaidAccountsModal] = useState(false);
+  const [plaidAccountsToLink, setPlaidAccountsToLink] = useState<PlaidAccountInfo[]>([]);
+  const [plaidInstitutionName, setPlaidInstitutionName] = useState<string | undefined>();
+
+  // Pre-fill from Plaid data if coming from account linking
+  useEffect(() => {
+    if (params.plaidAccountId) {
+      setPlaidAccountId(params.plaidAccountId);
+      
+      // Pre-fill name from Plaid
+      if (params.plaidName) {
+        setName(params.plaidName);
+      }
+      
+      // Pre-fill balance from Plaid (auto-sync the value!)
+      if (params.plaidBalance) {
+        const balance = parseFloat(params.plaidBalance);
+        if (!isNaN(balance)) {
+          setValue(Math.abs(balance)); // Use absolute value for assets
+        }
+      }
+      
+      // Pre-select category if provided
+      if (params.plaidCategory) {
+        const matchingCategory = ASSET_CATEGORIES.find(
+          c => c.value === params.plaidCategory
+        );
+        if (matchingCategory) {
+          setCategory(matchingCategory.value);
+          setStep('details'); // Skip to details since we have category
+        }
+      }
+    }
+  }, [params.plaidAccountId, params.plaidName, params.plaidCategory, params.plaidBalance]);
 
   const handleCategorySelect = (cat: AssetCategory) => {
     setCategory(cat);
@@ -106,11 +167,27 @@ export default function AddAssetScreen() {
     setLocalError(null);
 
     try {
-      await addAsset({
+      const asset = await addAsset({
         category,
         name,
         value,
       });
+      
+      // If this asset was created from a Plaid account, link them
+      if (plaidAccountId && asset?.id) {
+        try {
+          await linkAccount({
+            connected_account_id: plaidAccountId,
+            entity_id: asset.id,
+            entity_type: 'asset',
+          });
+          console.log('[AddAsset] Linked Plaid account to new asset');
+        } catch (linkError: any) {
+          console.error('[AddAsset] Failed to link Plaid account:', linkError);
+          // Don't fail the whole operation if linking fails
+        }
+      }
+      
       router.back();
     } catch (error: any) {
       console.error('Failed to add asset:', error);
@@ -159,10 +236,128 @@ export default function AddAssetScreen() {
             <XStack width={60} />
           </XStack>
 
-          {step === 'category' ? (
+          {step === 'method' ? (
+            // Method Selection: Plaid vs Manual
+            <ScrollView flex={1} padding={24}>
+              <Animated.View entering={FadeInDown.delay(100).springify()}>
+                <YStack gap={24}>
+                  <YStack gap={8}>
+                    <Text fontSize={24} fontWeight="700" color="#2d3436">
+                      Add Asset
+                    </Text>
+                    <Text fontSize={16} color="#636e72">
+                      Choose how you'd like to add your asset
+                    </Text>
+                  </YStack>
+
+                  {/* Connect Bank Option */}
+                  <Pressable onPress={() => {}}>
+                    <Card
+                      padding={20}
+                      backgroundColor="#f0f7ff"
+                      borderWidth={2}
+                      borderColor="#1e3a5f"
+                    >
+                      <YStack gap={12}>
+                        <XStack gap={12} alignItems="center">
+                          <Text fontSize={28}>🏦</Text>
+                          <YStack flex={1}>
+                            <Text fontSize={18} fontWeight="700" color="#1e3a5f">
+                              Link Financial Accounts
+                            </Text>
+                            <Text fontSize={14} color="#636e72" marginTop={2}>
+                              Auto-sync checking, savings, investments & more
+                            </Text>
+                          </YStack>
+                        </XStack>
+                        
+                        <YStack gap={8} marginTop={8}>
+                          <PlaidLinkButton
+                            onSuccess={(publicToken: string, metadata: any) => {
+                              console.log('[AddAsset] Plaid success, accounts:', metadata.accounts);
+                              if (metadata.accounts && metadata.accounts.length > 0) {
+                                // Filter to only show asset accounts
+                                const assetAccounts = metadata.accounts.filter(
+                                  (acc: PlaidAccountInfo) => acc.is_asset
+                                );
+                                if (assetAccounts.length > 0) {
+                                  setPlaidAccountsToLink(assetAccounts);
+                                  setPlaidInstitutionName(metadata.institution?.name);
+                                  setShowPlaidAccountsModal(true);
+                                } else {
+                                  // No asset accounts found, show message
+                                  setLocalError('No asset accounts found. The connected accounts may be liabilities (credit cards, loans).');
+                                }
+                              }
+                            }}
+                            onError={(error) => {
+                              console.error('[AddAsset] Plaid error:', error);
+                              setLocalError(error?.message || 'Failed to connect bank');
+                            }}
+                            onExit={() => {
+                              console.log('[AddAsset] Plaid exit');
+                            }}
+                          />
+                          
+                          {connectedAccounts.length > 0 && (
+                            <Text fontSize={12} color="#4a7c59" textAlign="center">
+                              ✓ {connectedAccounts.length} account{connectedAccounts.length !== 1 ? 's' : ''} already connected
+                            </Text>
+                          )}
+                        </YStack>
+                      </YStack>
+                    </Card>
+                  </Pressable>
+
+                  {/* Divider */}
+                  <XStack alignItems="center" gap={16}>
+                    <YStack flex={1} height={1} backgroundColor="#e0ddd8" />
+                    <Text fontSize={14} color="#636e72">or</Text>
+                    <YStack flex={1} height={1} backgroundColor="#e0ddd8" />
+                  </XStack>
+
+                  {/* Manual Entry Option */}
+                  <Pressable onPress={() => setStep('category')}>
+                    <Card padding={20}>
+                      <XStack gap={12} alignItems="center">
+                        <Text fontSize={28}>✍️</Text>
+                        <YStack flex={1}>
+                          <Text fontSize={18} fontWeight="600" color="#2d3436">
+                            Add Manually
+                          </Text>
+                          <Text fontSize={14} color="#636e72" marginTop={2}>
+                            Enter your own values
+                          </Text>
+                        </YStack>
+                        <Text fontSize={20} color="#636e72">→</Text>
+                      </XStack>
+                    </Card>
+                  </Pressable>
+
+                  {/* Error display */}
+                  {localError && (
+                    <Card variant="warning">
+                      <Text fontSize={14} color="#d4a84b" textAlign="center">
+                        {localError}
+                      </Text>
+                    </Card>
+                  )}
+                </YStack>
+              </Animated.View>
+            </ScrollView>
+          ) : step === 'category' ? (
             <ScrollView flex={1} padding={24}>
               <Animated.View entering={FadeInDown.delay(100).springify()}>
                 <YStack gap={16}>
+                  {/* Back to method selection */}
+                  {!params.plaidAccountId && params.method !== 'manual' && (
+                    <Pressable onPress={() => setStep('method')}>
+                      <Text fontSize={14} color="#1e3a5f">
+                        ← Back
+                      </Text>
+                    </Pressable>
+                  )}
+                  
                   <Text fontSize={20} fontWeight="700" color="#2d3436">
                     What type of asset?
                   </Text>
@@ -320,6 +515,25 @@ export default function AddAssetScreen() {
           minCount={1}
         />
       )}
+
+      {/* Plaid Accounts Modal */}
+      <PlaidAccountsModal
+        visible={showPlaidAccountsModal}
+        accounts={plaidAccountsToLink}
+        institutionName={plaidInstitutionName}
+        onClose={() => {
+          setShowPlaidAccountsModal(false);
+          setPlaidAccountsToLink([]);
+          setPlaidInstitutionName(undefined);
+        }}
+        onComplete={() => {
+          setShowPlaidAccountsModal(false);
+          setPlaidAccountsToLink([]);
+          setPlaidInstitutionName(undefined);
+          refresh();
+          router.back();
+        }}
+      />
     </SafeAreaView>
   );
 }

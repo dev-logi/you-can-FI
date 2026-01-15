@@ -177,3 +177,17 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
   };
 }
 
+/**
+ * Formats a date/time string for display.
+ */
+export function formatDateTime(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+

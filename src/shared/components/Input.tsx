@@ -17,6 +17,7 @@ const StyledInput = styled(TamaguiInput, {
   paddingTop: 18, // Increased to prevent top text cutoff
   paddingBottom: 20, // Significantly increased bottom padding to prevent text cutoff when focused
   fontSize: 16,
+  lineHeight: 20, // Add line height to ensure text doesn't get clipped
   color: '#2d3436',
   fontFamily: '$body',
   minHeight: 60, // Increased minimum height to ensure proper text display

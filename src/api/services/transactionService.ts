@@ -63,8 +63,28 @@ export interface TransactionFilters {
   start_date?: string;
   end_date?: string;
   category?: string;
+  search?: string;
   limit?: number;
   offset?: number;
+}
+
+export interface MerchantSummary {
+  merchant_name: string;
+  total_amount: number;
+  transaction_count: number;
+  last_transaction_date: string;
+  category?: string;
+}
+
+export interface MerchantListResponse {
+  merchants: MerchantSummary[];
+  total: number;
+}
+
+export interface TransactionUpdateRequest {
+  user_category?: string;
+  user_notes?: string;
+  is_hidden?: boolean;
 }
 
 class TransactionServiceClass {
@@ -75,7 +95,7 @@ class TransactionServiceClass {
     const params = new URLSearchParams();
     
     if (filters?.connected_account_id) {
-      params.append('connected_account_id', filters.connected_account_id);
+      params.append('account_id', filters.connected_account_id);
     }
     if (filters?.start_date) {
       params.append('start_date', filters.start_date);
@@ -85,6 +105,9 @@ class TransactionServiceClass {
     }
     if (filters?.category) {
       params.append('category', filters.category);
+    }
+    if (filters?.search) {
+      params.append('search', filters.search);
     }
     if (filters?.limit) {
       params.append('limit', filters.limit.toString());
@@ -126,6 +149,49 @@ class TransactionServiceClass {
    */
   async syncAll(): Promise<TransactionSyncResponse> {
     return ApiClient.post<TransactionSyncResponse>('/transactions/sync');
+  }
+
+  /**
+   * Get a single transaction by ID.
+   */
+  async getTransaction(transactionId: string): Promise<Transaction> {
+    return ApiClient.get<Transaction>(`/transactions/${transactionId}`);
+  }
+
+  /**
+   * Update a transaction (recategorize, add notes, hide).
+   */
+  async updateTransaction(
+    transactionId: string, 
+    data: TransactionUpdateRequest
+  ): Promise<Transaction> {
+    return ApiClient.put<Transaction>(`/transactions/${transactionId}`, data);
+  }
+
+  /**
+   * Get merchant spending summary.
+   */
+  async getMerchants(filters?: {
+    start_date?: string;
+    end_date?: string;
+    limit?: number;
+  }): Promise<MerchantListResponse> {
+    const params = new URLSearchParams();
+    
+    if (filters?.start_date) {
+      params.append('start_date', filters.start_date);
+    }
+    if (filters?.end_date) {
+      params.append('end_date', filters.end_date);
+    }
+    if (filters?.limit) {
+      params.append('limit', filters.limit.toString());
+    }
+    
+    const queryString = params.toString();
+    const url = queryString ? `/transactions/merchants?${queryString}` : '/transactions/merchants';
+    
+    return ApiClient.get<MerchantListResponse>(url);
   }
 }
 

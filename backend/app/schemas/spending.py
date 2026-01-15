@@ -106,6 +106,26 @@ class MonthlyCashFlow(BaseModel):
     savings_rate: float
 
 
+class RecurringTransaction(BaseModel):
+    """A detected recurring transaction (subscription/bill)."""
+    merchant_name: str
+    category: Optional[str] = None
+    display_name: Optional[str] = None
+    average_amount: float
+    frequency: str  # "monthly", "weekly", "yearly", etc.
+    last_date: date
+    next_expected_date: Optional[date] = None
+    transaction_count: int
+    is_subscription: bool = False  # True if appears to be a subscription
+
+
+class RecurringTransactionsResponse(BaseModel):
+    """Response for recurring transactions."""
+    recurring: List[RecurringTransaction]
+    estimated_monthly_total: float
+    count: int
+
+
 # Update forward references
 CategoryDetailResponse.model_rebuild()
 CashFlowSummaryResponse.model_rebuild()

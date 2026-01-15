@@ -84,6 +84,24 @@ export interface CashFlowSummaryResponse {
   monthly_history: MonthlyCashFlow[];
 }
 
+export interface RecurringTransaction {
+  merchant_name: string;
+  category?: string;
+  display_name?: string;
+  average_amount: number;
+  frequency: string;
+  last_date: string;
+  next_expected_date?: string;
+  transaction_count: number;
+  is_subscription: boolean;
+}
+
+export interface RecurringTransactionsResponse {
+  recurring: RecurringTransaction[];
+  estimated_monthly_total: number;
+  count: number;
+}
+
 // ========== Service ==========
 
 class SpendingServiceClass {
@@ -118,6 +136,13 @@ class SpendingServiceClass {
     return ApiClient.get<CashFlowSummaryResponse>(
       `/spending/cashflow?months=${months}`
     );
+  }
+
+  /**
+   * Get detected recurring transactions (subscriptions, bills).
+   */
+  async getRecurring(): Promise<RecurringTransactionsResponse> {
+    return ApiClient.get<RecurringTransactionsResponse>('/spending/recurring');
   }
 }
 

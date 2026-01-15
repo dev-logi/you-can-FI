@@ -20,6 +20,8 @@ from app.schemas.transaction import (
     TransactionSyncResponse,
     TransactionSyncAllResponse,
     TransactionUpdateRequest,
+    MerchantSummary,
+    MerchantListResponse,
 )
 
 router = APIRouter()
@@ -32,13 +34,15 @@ def list_transactions(
     start_date: Optional[date] = Query(None, description="Filter transactions from this date"),
     end_date: Optional[date] = Query(None, description="Filter transactions until this date"),
     account_id: Optional[str] = Query(None, description="Filter by connected account ID"),
+    category: Optional[str] = Query(None, description="Filter by category (primary or user category)"),
+    search: Optional[str] = Query(None, description="Search by merchant name or description"),
     db: Session = Depends(get_db),
     user_id: str = Depends(get_current_user)
 ):
     """
     Get transactions for the current user.
     
-    Supports filtering by date range and account.
+    Supports filtering by date range, account, category, and search text.
     Returns transactions sorted by date (newest first).
     """
     if account_id:
@@ -53,16 +57,24 @@ def list_transactions(
         transactions = transaction_repository.get_by_connected_account(
             db, account_id, user_id, 
             limit=limit, offset=offset,
-            start_date=start_date, end_date=end_date
+            start_date=start_date, end_date=end_date,
+            category=category, search=search
         )
-        total = transaction_repository.count_by_connected_account(db, account_id, user_id)
+        total = transaction_repository.count_by_connected_account(
+            db, account_id, user_id,
+            category=category, search=search
+        )
     else:
         transactions = transaction_repository.get_by_user(
             db, user_id,
             limit=limit, offset=offset,
-            start_date=start_date, end_date=end_date
+            start_date=start_date, end_date=end_date,
+            category=category, search=search
         )
-        total = transaction_repository.count_by_user(db, user_id)
+        total = transaction_repository.count_by_user(
+            db, user_id,
+            category=category, search=search
+        )
     
     return TransactionListResponse(
         transactions=[TransactionResponse.model_validate(t) for t in transactions],
@@ -214,4 +226,31 @@ def get_account_transactions(
         total=total,
         limit=limit,
         offset=offset
+    )
+
+
+@router.get("/merchants", response_model=MerchantListResponse)
+def get_merchants(
+    limit: int = Query(50, ge=1, le=100),
+    start_date: Optional[date] = Query(None, description="Filter transactions from this date"),
+    end_date: Optional[date] = Query(None, description="Filter transactions until this date"),
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user)
+):
+    """
+    Get spending summary grouped by merchant.
+    
+    Returns merchants sorted by total spending (highest first).
+    Only includes expense transactions (positive amounts).
+    """
+    merchant_data = transaction_repository.get_merchant_summary(
+        db, user_id,
+        start_date=start_date,
+        end_date=end_date,
+        limit=limit
+    )
+    
+    return MerchantListResponse(
+        merchants=[MerchantSummary(**m) for m in merchant_data],
+        total=len(merchant_data)
     )

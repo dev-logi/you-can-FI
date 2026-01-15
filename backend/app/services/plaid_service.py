@@ -100,6 +100,7 @@ class PlaidService:
             client_name="You Can FI",
             country_codes=[CountryCode('US')],
             language='en',
+            redirect_uri='youcanfi://plaid-oauth',  # Required for OAuth banks (Chase, etc.)
             user=LinkTokenCreateRequestUser(
                 client_user_id=user_id
             )

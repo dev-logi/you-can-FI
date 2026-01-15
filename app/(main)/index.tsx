@@ -592,17 +592,14 @@ export default function DashboardScreen() {
                   console.log('[Dashboard] Plaid Link exited');
                 }}
               />
-              {/* Connection count indicator - useful for future subscription limits */}
+              {/* Connection count indicator */}
               {connectedAccounts.length > 0 && (
-                <Pressable onPress={() => router.push('/(main)/connected-accounts')}>
-                  <XStack justifyContent="center" alignItems="center" gap={6}>
-                    <YStack width={8} height={8} borderRadius={4} backgroundColor="#4a7c59" />
-                    <Text fontSize={12} color="#636e72">
-                      {connectedAccounts.length} {connectedAccounts.length === 1 ? 'account' : 'accounts'} connected
-                    </Text>
-                    <Text fontSize={12} color="#1e3a5f">→</Text>
-                  </XStack>
-                </Pressable>
+                <XStack justifyContent="center" alignItems="center" gap={6}>
+                  <YStack width={8} height={8} borderRadius={4} backgroundColor="#4a7c59" />
+                  <Text fontSize={12} color="#636e72">
+                    {connectedAccounts.length} {connectedAccounts.length === 1 ? 'account' : 'accounts'} connected
+                  </Text>
+                </XStack>
               )}
             </YStack>
           </Animated.View>

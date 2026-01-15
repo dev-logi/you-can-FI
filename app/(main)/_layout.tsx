@@ -28,7 +28,7 @@ export default function MainLayout() {
       <Stack.Screen name="liabilities" />
       <Stack.Screen name="account-detail" />
       <Stack.Screen name="spending" />
-      <Stack.Screen name="connected-accounts" />
+      <Stack.Screen name="transactions" />
       <Stack.Screen 
         name="add-asset" 
         options={{ 

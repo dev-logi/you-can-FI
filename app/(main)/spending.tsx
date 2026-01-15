@@ -270,6 +270,18 @@ function SpendingView({
             ))
           )}
         </YStack>
+
+        {/* View All Transactions */}
+        <Pressable onPress={() => router.push('/(main)/transactions')}>
+          <Card>
+            <XStack justifyContent="center" alignItems="center" gap={8}>
+              <Text fontSize={14} fontWeight="600" color="#1e3a5f">
+                View All Transactions
+              </Text>
+              <Text fontSize={14} color="#1e3a5f">→</Text>
+            </XStack>
+          </Card>
+        </Pressable>
       </YStack>
     </Animated.View>
   );

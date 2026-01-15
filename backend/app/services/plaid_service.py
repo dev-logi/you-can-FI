@@ -91,23 +91,26 @@ class PlaidService:
         # - investments (optional): Granular holdings data for 401k, IRA, HSA, brokerage
         # - liabilities (optional): Detailed loan info (APR, payment schedules)
         # Using optional_products ensures connection succeeds even if bank doesn't support them
-        # Note: redirect_uri is NOT included for native mobile apps
-        # The react-native-plaid-link-sdk handles OAuth flow internally
-        # Plaid requires HTTPS for redirect_uri in production, which requires Universal Links setup
-        # By omitting it, the SDK manages OAuth callbacks automatically
-        request = LinkTokenCreateRequest(
-            products=[Products('transactions')],
-            optional_products=[
+        
+        # Build request with optional redirect_uri for OAuth banks
+        request_params = {
+            'products': [Products('transactions')],
+            'optional_products': [
                 Products('investments'),
                 Products('liabilities'),
             ],
-            client_name="You Can FI",
-            country_codes=[CountryCode('US')],
-            language='en',
-            user=LinkTokenCreateRequestUser(
-                client_user_id=user_id
-            )
-        )
+            'client_name': "You Can FI",
+            'country_codes': [CountryCode('US')],
+            'language': 'en',
+            'user': LinkTokenCreateRequestUser(client_user_id=user_id),
+        }
+        
+        # Add redirect_uri if configured (required for OAuth banks like Chase, Amex, Schwab)
+        if settings.plaid_oauth_redirect_uri:
+            request_params['redirect_uri'] = settings.plaid_oauth_redirect_uri
+            print(f"[PlaidService] Using OAuth redirect URI: {settings.plaid_oauth_redirect_uri}")
+        
+        request = LinkTokenCreateRequest(**request_params)
         
         try:
             response = self.client.link_token_create(request)

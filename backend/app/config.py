@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     plaid_secret: str = ""
     plaid_environment: str = "sandbox"  # 'sandbox', 'development', 'production'
     plaid_encryption_key: str = ""  # For encrypting access tokens
+    plaid_oauth_redirect_uri: str = ""  # OAuth redirect URI for production (e.g., https://your-domain.com/oauth/callback)
     
     # Batch Sync API Key (for scheduled jobs)
     batch_sync_api_key: str = ""  # Set via BATCH_SYNC_API_KEY env var

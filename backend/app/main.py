@@ -5,8 +5,9 @@ You Can FI - Personal Finance Backend
 """
 
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, HTMLResponse
 
 from app.config import settings
 from app.database import create_tables
@@ -89,6 +90,102 @@ def root():
 def health_check():
     """Health check endpoint for Railway."""
     return {"status": "healthy"}
+
+
+# Apple App Site Association for Universal Links (iOS OAuth support)
+@app.get("/.well-known/apple-app-site-association")
+def apple_app_site_association():
+    """
+    Serve apple-app-site-association for iOS Universal Links.
+    Required for Plaid OAuth to redirect back to the app.
+    """
+    return JSONResponse(
+        content={
+            "applinks": {
+                "apps": [],
+                "details": [
+                    {
+                        "appID": "XXXXXXXXXX.com.youcanfi.app",  # Replace XXXXXXXXXX with your Apple Team ID
+                        "paths": ["/oauth/*", "/plaid-oauth/*"]
+                    }
+                ]
+            },
+            "webcredentials": {
+                "apps": ["XXXXXXXXXX.com.youcanfi.app"]  # Replace XXXXXXXXXX with your Apple Team ID
+            }
+        },
+        media_type="application/json"
+    )
+
+
+@app.get("/oauth/callback")
+def oauth_callback(
+    oauth_state_id: str = Query(None),
+    error: str = Query(None)
+):
+    """
+    OAuth callback endpoint for Plaid.
+    
+    After OAuth authentication, Plaid redirects here.
+    This page then redirects the user back to the app using Universal Links.
+    """
+    # Build the app deep link
+    app_url = f"youcanfi://plaid-oauth"
+    
+    if oauth_state_id:
+        app_url += f"?oauth_state_id={oauth_state_id}"
+    if error:
+        app_url += f"{'&' if oauth_state_id else '?'}error={error}"
+    
+    # Return an HTML page that redirects to the app
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Redirecting to MyFinPal...</title>
+        <style>
+            body {{
+                font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                margin: 0;
+                background: #faf8f5;
+                color: #333;
+            }}
+            .container {{
+                text-align: center;
+                padding: 20px;
+            }}
+            h1 {{ font-size: 24px; margin-bottom: 16px; }}
+            p {{ color: #666; margin-bottom: 24px; }}
+            a {{
+                display: inline-block;
+                background: #1e3a5f;
+                color: white;
+                padding: 12px 24px;
+                border-radius: 8px;
+                text-decoration: none;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Redirecting to MyFinPal...</h1>
+            <p>If you're not redirected automatically, tap the button below.</p>
+            <a href="{app_url}">Open MyFinPal</a>
+        </div>
+        <script>
+            // Try to redirect immediately
+            window.location.href = "{app_url}";
+        </script>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
 
 
 if __name__ == "__main__":

@@ -211,6 +211,8 @@ function SpendingView({
   data: SpendingSummaryResponse | null;
   formatDate: (d: string) => string;
 }) {
+  const router = useRouter();
+  
   if (!data) return null;
 
   const changeColor = data.spending_change_percent !== undefined

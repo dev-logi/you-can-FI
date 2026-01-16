@@ -91,8 +91,9 @@ export default function OAuthCallbackScreen() {
 
       try {
         // Build the received redirect URI
-        // This is the full URL that was used to redirect back to the app
-        const receivedRedirectUri = `youcanfi://oauth/callback?oauth_state_id=${params.oauth_state_id}`;
+        // This MUST be the HTTPS Universal Link URL that Plaid redirected to,
+        // NOT the deep link scheme. Plaid validates this matches what it sent.
+        const receivedRedirectUri = `https://you-can-fi-production.up.railway.app/oauth/callback?oauth_state_id=${params.oauth_state_id}`;
         
         console.log('[OAuthCallback] Resuming OAuth with:');
         console.log('[OAuthCallback] - Link Token:', linkToken.substring(0, 20) + '...');

@@ -23,10 +23,13 @@ export interface PlaidAccountInfo {
 
 export interface ConnectedAccount {
   id: string;
+  provider: string;  // 'plaid', 'finicity', etc.
+  institution_id?: string;
   institution_name: string;
   account_name: string;
   account_type: string;
   account_subtype?: string;
+  account_mask?: string;
   is_active: boolean;
   last_synced_at?: string;
   last_sync_error?: string;

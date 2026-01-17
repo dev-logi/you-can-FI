@@ -59,4 +59,14 @@ except ImportError as e:
 except Exception as e:
     print(f"⚠️  WARNING: Failed to load Batch Sync router: {e}")
 
+# Include Aggregators router (multi-provider support)
+try:
+    from app.api import aggregators
+    api_router.include_router(aggregators.router, prefix="/aggregators", tags=["Aggregators"])
+    print("✅ Aggregators router loaded successfully")
+except ImportError as e:
+    print(f"⚠️  WARNING: Aggregators router not available (ImportError: {e})")
+except Exception as e:
+    print(f"⚠️  WARNING: Failed to load Aggregators router: {e}")
+
 

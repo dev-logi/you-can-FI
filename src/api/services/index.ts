@@ -10,12 +10,20 @@ export { PlaidApiService } from './plaidService';
 export { TransactionService } from './transactionService';
 export { HoldingService } from './holdingService';
 export { SpendingService } from './spendingService';
+export { AggregatorApiService } from './aggregatorService';
 export type {
   ConnectedAccount,
   PlaidAccountInfo,
   SyncResponse,
   LinkAccountRequest,
 } from './plaidService';
+export type {
+  AggregatorType,
+  LinkTokenResponse as AggregatorLinkTokenResponse,
+  ProviderInfo,
+  AccountStats,
+  InstitutionRecommendation,
+} from './aggregatorService';
 export type {
   Transaction,
   TransactionListResponse,

@@ -2,6 +2,7 @@
 Plaid Schemas
 
 Pydantic models for Plaid API request/response validation.
+Also used for other aggregators with provider-agnostic fields.
 """
 
 from datetime import datetime
@@ -12,26 +13,33 @@ from pydantic import BaseModel, Field
 class LinkTokenResponse(BaseModel):
     """Response for link token creation."""
     link_token: str
+    provider: str = "plaid"  # Aggregator type
+    connect_url: Optional[str] = None  # For providers that use URLs (e.g., Finicity)
 
 
 class ExchangeTokenRequest(BaseModel):
     """Request to exchange public token for access token."""
     public_token: str
+    provider: str = "plaid"  # Which aggregator this token is from
 
 
 class ExchangeTokenResponse(BaseModel):
     """Response after exchanging public token."""
     item_id: str
     access_token: str  # Note: This should be encrypted before storing
+    provider: str = "plaid"
 
 
 class ConnectedAccountResponse(BaseModel):
     """Response for connected account information."""
     id: str
+    provider: str = "plaid"  # Aggregator type (plaid, finicity, etc.)
+    institution_id: Optional[str] = None
     institution_name: str
     account_name: str
     account_type: str
     account_subtype: Optional[str]
+    account_mask: Optional[str] = None
     is_active: bool
     last_synced_at: Optional[datetime]
     last_sync_error: Optional[str]

@@ -1,11 +1,11 @@
 /**
  * Add Liability Screen
  * 
- * Modal for adding a new liability.
- * Supports both Plaid (bank connection) and manual entry.
+ * Modal for adding a new liability manually.
+ * For bank connections, use the Link Accounts screen instead.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { YStack, XStack, Text, ScrollView } from 'tamagui';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,20 +14,11 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Button, Card, Input, CurrencyInput, OptionButton, CountInputModal, MultiItemForm, ExistingItemsView } from '../../src/shared/components';
 import { useNetWorthStore } from '../../src/features/netWorth/store';
-import { usePlaidStore } from '../../src/features/plaid/store';
-import { PlaidLinkButton } from '../../src/features/plaid/components/PlaidLinkButton';
-import { PlaidAccountsModal } from '../../src/features/plaid/components/PlaidAccountsModal';
 import { LiabilityCategory } from '../../src/shared/types';
 import { getLiabilityCategoryLabel } from '../../src/features/netWorth/service';
 import { isLiabilityCategoryItemizable, getLiabilityItemizationLabel, getLiabilityAdditionalItemizationLabel } from '../../src/shared/utils/itemization';
-import type { PlaidAccountInfo } from '../../src/api/services/plaidService';
 
 // Types for multi-item form
-type AssetItemData = {
-  name: string;
-  value: number;
-};
-
 type LiabilityItemData = {
   name: string;
   balance: number;
@@ -46,27 +37,11 @@ const LIABILITY_CATEGORIES: Array<{ value: LiabilityCategory; label: string }> =
 export default function AddLiabilityScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{
-    plaidAccountId?: string;
-    plaidName?: string;
-    plaidCategory?: string;
-    plaidType?: string;
-    plaidSubtype?: string;
-    plaidBalance?: string;
-    method?: string; // 'manual' to skip method selection
+    method?: string; // 'manual' to skip any prompts
   }>();
-  const { addLiability, isLoading, error, liabilities, refresh } = useNetWorthStore();
-  const { linkAccount, connectedAccounts } = usePlaidStore();
+  const { addLiability, isLoading, error, liabilities } = useNetWorthStore();
 
-  // Determine initial step based on params
-  const getInitialStep = () => {
-    // If coming from Plaid flow with account data, skip to category
-    if (params.plaidAccountId) return 'category';
-    // If method=manual passed, skip method selection
-    if (params.method === 'manual') return 'category';
-    return 'method';
-  };
-
-  const [step, setStep] = useState<'method' | 'category' | 'existing' | 'count' | 'details'>(getInitialStep);
+  const [step, setStep] = useState<'category' | 'existing' | 'count' | 'details'>('category');
   const [category, setCategory] = useState<LiabilityCategory | null>(null);
   const [count, setCount] = useState(1);
   const [showCountModal, setShowCountModal] = useState(false);
@@ -74,43 +49,6 @@ export default function AddLiabilityScreen() {
   const [balance, setBalance] = useState(0);
   const [interestRate, setInterestRate] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
-  const [plaidAccountId, setPlaidAccountId] = useState<string | null>(null);
-  
-  // Plaid flow state
-  const [showPlaidAccountsModal, setShowPlaidAccountsModal] = useState(false);
-  const [plaidAccountsToLink, setPlaidAccountsToLink] = useState<PlaidAccountInfo[]>([]);
-  const [plaidInstitutionName, setPlaidInstitutionName] = useState<string | undefined>();
-
-  // Pre-fill from Plaid data if coming from account linking
-  useEffect(() => {
-    if (params.plaidAccountId) {
-      setPlaidAccountId(params.plaidAccountId);
-      
-      // Pre-fill name from Plaid
-      if (params.plaidName) {
-        setName(params.plaidName);
-      }
-      
-      // Pre-fill balance from Plaid (auto-sync the value!)
-      if (params.plaidBalance) {
-        const plaidBal = parseFloat(params.plaidBalance);
-        if (!isNaN(plaidBal)) {
-          setBalance(Math.abs(plaidBal)); // Use absolute value for liabilities
-        }
-      }
-      
-      // Pre-select category if provided
-      if (params.plaidCategory) {
-        const matchingCategory = LIABILITY_CATEGORIES.find(
-          c => c.value === params.plaidCategory
-        );
-        if (matchingCategory) {
-          setCategory(matchingCategory.value);
-          setStep('details'); // Skip to details since we have category
-        }
-      }
-    }
-  }, [params.plaidAccountId, params.plaidName, params.plaidCategory, params.plaidBalance]);
 
   const handleCategorySelect = (cat: LiabilityCategory) => {
     setCategory(cat);
@@ -171,28 +109,12 @@ export default function AddLiabilityScreen() {
     setLocalError(null);
 
     try {
-      const liability = await addLiability({
+      await addLiability({
         category,
         name,
         balance,
         interestRate: interestRate ? parseFloat(interestRate) : undefined,
       });
-      
-      // If this liability was created from a Plaid account, link them
-      if (plaidAccountId && liability?.id) {
-        try {
-          await linkAccount({
-            connected_account_id: plaidAccountId,
-            entity_id: liability.id,
-            entity_type: 'liability',
-          });
-          console.log('[AddLiability] Linked Plaid account to new liability');
-        } catch (linkError: any) {
-          console.error('[AddLiability] Failed to link Plaid account:', linkError);
-          // Don't fail the whole operation if linking fails
-        }
-      }
-      
       router.back();
     } catch (error: any) {
       console.error('Failed to add liability:', error);
@@ -241,127 +163,32 @@ export default function AddLiabilityScreen() {
             <XStack width={60} />
           </XStack>
 
-          {step === 'method' ? (
-            // Method Selection: Plaid vs Manual
-            <ScrollView flex={1} padding={24}>
-              <Animated.View entering={FadeInDown.delay(100).springify()}>
-                <YStack gap={24}>
-                  <YStack gap={8}>
-                    <Text fontSize={24} fontWeight="700" color="#2d3436">
-                      Add Liability
-                    </Text>
-                    <Text fontSize={16} color="#636e72">
-                      Choose how you'd like to add your liability
-                    </Text>
-                  </YStack>
-
-                  {/* Connect Bank Option */}
-                  <Pressable onPress={() => {}}>
-                    <Card
-                      padding={20}
-                      backgroundColor="#fff5f5"
-                      borderWidth={2}
-                      borderColor="#c75c5c"
-                    >
-                      <YStack gap={12}>
-                        <XStack gap={12} alignItems="center">
-                          <Text fontSize={28}>🏦</Text>
-                          <YStack flex={1}>
-                            <Text fontSize={18} fontWeight="700" color="#c75c5c">
-                              Link Financial Accounts
-                            </Text>
-                            <Text fontSize={14} color="#636e72" marginTop={2}>
-                              Auto-sync credit cards, loans & more
-                            </Text>
-                          </YStack>
-                        </XStack>
-                        
-                        <YStack gap={8} marginTop={8}>
-                          <PlaidLinkButton
-                            onSuccess={(publicToken: string, metadata: any) => {
-                              console.log('[AddLiability] Plaid success, accounts:', metadata.accounts);
-                              if (metadata.accounts && metadata.accounts.length > 0) {
-                                // Filter to only show liability accounts
-                                const liabilityAccounts = metadata.accounts.filter(
-                                  (acc: PlaidAccountInfo) => !acc.is_asset
-                                );
-                                if (liabilityAccounts.length > 0) {
-                                  setPlaidAccountsToLink(liabilityAccounts);
-                                  setPlaidInstitutionName(metadata.institution?.name);
-                                  setShowPlaidAccountsModal(true);
-                                } else {
-                                  // No liability accounts found, show message
-                                  setLocalError('No liability accounts found. The connected accounts may be assets (checking, savings).');
-                                }
-                              }
-                            }}
-                            onError={(error) => {
-                              console.error('[AddLiability] Plaid error:', error);
-                              setLocalError(error?.message || 'Failed to connect bank');
-                            }}
-                            onExit={() => {
-                              console.log('[AddLiability] Plaid exit');
-                            }}
-                          />
-                          
-                          {connectedAccounts.length > 0 && (
-                            <Text fontSize={12} color="#4a7c59" textAlign="center">
-                              ✓ {connectedAccounts.length} account{connectedAccounts.length !== 1 ? 's' : ''} already connected
-                            </Text>
-                          )}
-                        </YStack>
-                      </YStack>
-                    </Card>
-                  </Pressable>
-
-                  {/* Divider */}
-                  <XStack alignItems="center" gap={16}>
-                    <YStack flex={1} height={1} backgroundColor="#e0ddd8" />
-                    <Text fontSize={14} color="#636e72">or</Text>
-                    <YStack flex={1} height={1} backgroundColor="#e0ddd8" />
-                  </XStack>
-
-                  {/* Manual Entry Option */}
-                  <Pressable onPress={() => setStep('category')}>
-                    <Card padding={20}>
-                      <XStack gap={12} alignItems="center">
-                        <Text fontSize={28}>✍️</Text>
-                        <YStack flex={1}>
-                          <Text fontSize={18} fontWeight="600" color="#2d3436">
-                            Add Manually
-                          </Text>
-                          <Text fontSize={14} color="#636e72" marginTop={2}>
-                            Enter your own values
-                          </Text>
-                        </YStack>
-                        <Text fontSize={20} color="#636e72">→</Text>
-                      </XStack>
-                    </Card>
-                  </Pressable>
-
-                  {/* Error display */}
-                  {localError && (
-                    <Card variant="warning">
-                      <Text fontSize={14} color="#d4a84b" textAlign="center">
-                        {localError}
-                      </Text>
-                    </Card>
-                  )}
-                </YStack>
-              </Animated.View>
-            </ScrollView>
-          ) : step === 'category' ? (
+          {step === 'category' ? (
             <ScrollView flex={1} padding={24}>
               <Animated.View entering={FadeInDown.delay(100).springify()}>
                 <YStack gap={16}>
-                  {/* Back to method selection */}
-                  {!params.plaidAccountId && params.method !== 'manual' && (
-                    <Pressable onPress={() => setStep('method')}>
-                      <Text fontSize={14} color="#1e3a5f">
-                        ← Back
-                      </Text>
-                    </Pressable>
-                  )}
+                  {/* Link accounts prompt */}
+                  <Pressable onPress={() => router.push('/(main)/link-accounts')}>
+                    <Card 
+                      padding={16} 
+                      backgroundColor="#fff5f5"
+                      borderWidth={1}
+                      borderColor="#c75c5c"
+                    >
+                      <XStack gap={12} alignItems="center">
+                        <Text fontSize={24}>🏦</Text>
+                        <YStack flex={1}>
+                          <Text fontSize={14} fontWeight="600" color="#c75c5c">
+                            Have a credit card or loan?
+                          </Text>
+                          <Text fontSize={12} color="#636e72">
+                            Connect it to auto-sync balances
+                          </Text>
+                        </YStack>
+                        <Text fontSize={16} color="#c75c5c">→</Text>
+                      </XStack>
+                    </Card>
+                  </Pressable>
                   
                   <Text fontSize={20} fontWeight="700" color="#2d3436">
                     What type of liability?
@@ -529,26 +356,6 @@ export default function AddLiabilityScreen() {
           minCount={1}
         />
       )}
-
-      {/* Plaid Accounts Modal */}
-      <PlaidAccountsModal
-        visible={showPlaidAccountsModal}
-        accounts={plaidAccountsToLink}
-        institutionName={plaidInstitutionName}
-        onClose={() => {
-          setShowPlaidAccountsModal(false);
-          setPlaidAccountsToLink([]);
-          setPlaidInstitutionName(undefined);
-        }}
-        onComplete={() => {
-          setShowPlaidAccountsModal(false);
-          setPlaidAccountsToLink([]);
-          setPlaidInstitutionName(undefined);
-          refresh();
-          router.back();
-        }}
-      />
     </SafeAreaView>
   );
 }
-

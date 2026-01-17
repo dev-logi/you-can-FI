@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.youcanfi.app",
-      "buildNumber": "64",
+      "buildNumber": "65",
       "associatedDomains": [
         "applinks:you-can-fi-production.up.railway.app"
       ],
@@ -57,7 +57,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.youcanfi.app",
-      "versionCode": 64
+      "versionCode": 65
     },
     "web": {
       "favicon": "./assets/favicon.png",

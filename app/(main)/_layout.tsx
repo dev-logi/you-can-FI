@@ -43,6 +43,13 @@ export default function MainLayout() {
           animation: 'slide_from_bottom',
         }} 
       />
+      <Stack.Screen 
+        name="link-accounts" 
+        options={{ 
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
+        }} 
+      />
     </Stack>
   );
 }

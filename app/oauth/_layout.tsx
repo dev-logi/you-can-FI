@@ -1,7 +1,5 @@
 /**
  * OAuth Routes Layout
- * 
- * Simple layout for OAuth callback screens.
  */
 
 import { Stack } from 'expo-router';

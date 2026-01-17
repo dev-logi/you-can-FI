@@ -564,10 +564,35 @@ export default function DashboardScreen() {
           {/* Quick Actions */}
           <Animated.View entering={FadeInUp.delay(300).springify()}>
             <YStack gap={12}>
+              {/* Primary Action: Link Accounts */}
+              <Pressable onPress={() => router.push('/(main)/link-accounts')}>
+                <Card
+                  backgroundColor="#f0f7ff"
+                  borderWidth={2}
+                  borderColor="#1e3a5f"
+                >
+                  <XStack justifyContent="space-between" alignItems="center">
+                    <XStack gap={12} alignItems="center">
+                      <Text fontSize={24}>🏦</Text>
+                      <YStack>
+                        <Text fontSize={15} fontWeight="700" color="#1e3a5f">
+                          Link Accounts
+                        </Text>
+                        <Text fontSize={12} color="#636e72">
+                          Connect banks to auto-sync balances
+                        </Text>
+                      </YStack>
+                    </XStack>
+                    <Text fontSize={16} color="#1e3a5f">→</Text>
+                  </XStack>
+                </Card>
+              </Pressable>
+
+              {/* Secondary Actions */}
               <XStack gap={12}>
                 <Button
                   flex={1}
-                  variant="primary"
+                  variant="secondary"
                   size="small"
                   onPress={() => router.push('/(main)/add-asset')}
                 >
@@ -582,6 +607,8 @@ export default function DashboardScreen() {
                   + Add Liability
                 </Button>
               </XStack>
+              
+              {/* Spending Link */}
               <Pressable onPress={() => router.push('/(main)/spending')}>
                 <Card>
                   <XStack justifyContent="space-between" alignItems="center">

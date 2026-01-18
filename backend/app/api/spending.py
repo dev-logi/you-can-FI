@@ -239,15 +239,27 @@ def get_category_detail(
 @router.get("/cashflow", response_model=CashFlowSummaryResponse)
 def get_cashflow_summary(
     months: int = Query(6, description="Number of months of history"),
+    exclude_transfers: bool = Query(True, description="Exclude transfer transactions from calculations"),
     db: Session = Depends(get_db),
     user_id: str = Depends(get_current_user)
 ):
     """
     Get cash flow summary with income vs expenses breakdown.
+    
+    By default, excludes TRANSFER_IN and TRANSFER_OUT categories since they
+    represent money moving between your own accounts, not real income/expenses.
     """
     today = date.today()
     start_date = today.replace(day=1)
     end_date = today
+    
+    # Categories to exclude when exclude_transfers is True
+    transfer_categories = ['TRANSFER_IN', 'TRANSFER_OUT']
+    
+    def is_transfer(txn) -> bool:
+        """Check if transaction is a transfer."""
+        category = txn.user_category or txn.category_primary
+        return category in transfer_categories
     
     # Calculate start of history period
     history_start = (today - timedelta(days=30 * months)).replace(day=1)
@@ -260,6 +272,10 @@ def get_cashflow_summary(
         Transaction.is_hidden == False,
         Transaction.pending == False,
     ).all()
+    
+    # Filter out transfers if requested
+    if exclude_transfers:
+        current_txns = [txn for txn in current_txns if not is_transfer(txn)]
     
     total_income = sum(abs(txn.amount) for txn in current_txns if txn.amount < 0)
     total_expenses = sum(txn.amount for txn in current_txns if txn.amount > 0)
@@ -290,6 +306,10 @@ def get_cashflow_summary(
         Transaction.is_hidden == False,
         Transaction.pending == False,
     ).all()
+    
+    # Filter out transfers if requested
+    if exclude_transfers:
+        history_txns = [txn for txn in history_txns if not is_transfer(txn)]
     
     # Group by month in Python
     monthly_totals = defaultdict(lambda: {'income': 0.0, 'expenses': 0.0})

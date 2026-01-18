@@ -2,13 +2,14 @@
  * Spending Dashboard Screen
  * 
  * Shows spending summary with category breakdown and cash flow.
+ * Features: time period filter, exclude transfers toggle.
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
-import { YStack, XStack, Text, ScrollView, Spinner } from 'tamagui';
+import { YStack, XStack, Text, ScrollView, Spinner, Switch } from 'tamagui';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Pressable, RefreshControl, Dimensions } from 'react-native';
+import { Pressable, RefreshControl, Dimensions, Modal } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Button, Card } from '../../src/shared/components';
@@ -16,6 +17,53 @@ import { SpendingService, SpendingSummaryResponse, CashFlowSummaryResponse, Cate
 import { formatCurrency } from '../../src/shared/utils';
 
 type ViewMode = 'spending' | 'cashflow';
+
+// Time period options
+type TimePeriod = 'this_month' | 'last_month' | 'last_30' | 'last_90' | 'this_year' | 'all';
+
+const TIME_PERIODS: { value: TimePeriod; label: string }[] = [
+  { value: 'this_month', label: 'This Month' },
+  { value: 'last_month', label: 'Last Month' },
+  { value: 'last_30', label: 'Last 30 Days' },
+  { value: 'last_90', label: 'Last 90 Days' },
+  { value: 'this_year', label: 'This Year' },
+  { value: 'all', label: 'All Time' },
+];
+
+// Helper to get date range for a time period
+function getDateRange(period: TimePeriod): { start_date?: string; end_date?: string } {
+  const today = new Date();
+  const formatDate = (d: Date) => d.toISOString().split('T')[0];
+  
+  switch (period) {
+    case 'this_month': {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1);
+      return { start_date: formatDate(start), end_date: formatDate(today) };
+    }
+    case 'last_month': {
+      const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const end = new Date(today.getFullYear(), today.getMonth(), 0);
+      return { start_date: formatDate(start), end_date: formatDate(end) };
+    }
+    case 'last_30': {
+      const start = new Date(today);
+      start.setDate(start.getDate() - 30);
+      return { start_date: formatDate(start), end_date: formatDate(today) };
+    }
+    case 'last_90': {
+      const start = new Date(today);
+      start.setDate(start.getDate() - 90);
+      return { start_date: formatDate(start), end_date: formatDate(today) };
+    }
+    case 'this_year': {
+      const start = new Date(today.getFullYear(), 0, 1);
+      return { start_date: formatDate(start), end_date: formatDate(today) };
+    }
+    case 'all':
+    default:
+      return {};
+  }
+}
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -28,15 +76,21 @@ export default function SpendingScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Filter state
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>('this_month');
+  const [excludeTransfers, setExcludeTransfers] = useState(true);
+  const [showPeriodPicker, setShowPeriodPicker] = useState(false);
 
   const fetchData = useCallback(async (showLoading = true) => {
     if (showLoading) setIsLoading(true);
     setError(null);
     
     try {
+      const dateRange = getDateRange(timePeriod);
       const [spending, cashFlow] = await Promise.all([
-        SpendingService.getSummary(),
-        SpendingService.getCashFlow(6),
+        SpendingService.getSummary(dateRange.start_date, dateRange.end_date),
+        SpendingService.getCashFlow(6, excludeTransfers),
       ]);
       
       setSpendingData(spending);
@@ -48,7 +102,7 @@ export default function SpendingScreen() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, []);
+  }, [timePeriod, excludeTransfers]);
 
   useEffect(() => {
     fetchData();
@@ -108,7 +162,7 @@ export default function SpendingScreen() {
 
         {/* View Mode Toggle */}
         <Animated.View entering={FadeInDown.delay(150).springify()}>
-          <XStack paddingHorizontal={24} paddingBottom={16}>
+          <XStack paddingHorizontal={24} paddingBottom={12}>
             <XStack
               flex={1}
               backgroundColor="#f0f2f5"
@@ -165,6 +219,59 @@ export default function SpendingScreen() {
           </XStack>
         </Animated.View>
 
+        {/* Filters Row */}
+        <Animated.View entering={FadeInDown.delay(175).springify()}>
+          <XStack paddingHorizontal={24} paddingBottom={16} gap={10} alignItems="center">
+            {/* Time Period Picker */}
+            <Pressable onPress={() => setShowPeriodPicker(true)} style={{ flex: 1 }}>
+              <XStack
+                backgroundColor={timePeriod !== 'this_month' ? '#e0f2fe' : '#fff'}
+                borderRadius={10}
+                paddingVertical={10}
+                paddingHorizontal={14}
+                borderWidth={1}
+                borderColor={timePeriod !== 'this_month' ? '#0ea5e9' : '#e5e7eb'}
+                justifyContent="space-between"
+                alignItems="center"
+              >
+                <XStack alignItems="center" gap={8}>
+                  <Text fontSize={16}>📅</Text>
+                  <Text 
+                    fontSize={14} 
+                    fontWeight="500"
+                    color={timePeriod !== 'this_month' ? '#0369a1' : '#374151'}
+                  >
+                    {TIME_PERIODS.find(p => p.value === timePeriod)?.label}
+                  </Text>
+                </XStack>
+                <Text fontSize={10} color="#9ca3af">▼</Text>
+              </XStack>
+            </Pressable>
+
+            {/* Exclude Transfers Toggle (only in cashflow view) */}
+            {viewMode === 'cashflow' && (
+              <Pressable 
+                onPress={() => setExcludeTransfers(!excludeTransfers)}
+              >
+                <XStack
+                  backgroundColor={excludeTransfers ? '#e0f2fe' : '#fff'}
+                  borderRadius={10}
+                  paddingVertical={10}
+                  paddingHorizontal={14}
+                  borderWidth={1}
+                  borderColor={excludeTransfers ? '#0ea5e9' : '#e5e7eb'}
+                  alignItems="center"
+                  gap={8}
+                >
+                  <Text fontSize={14} color={excludeTransfers ? '#0369a1' : '#6b7280'}>
+                    {excludeTransfers ? '✓' : '○'} Hide Transfers
+                  </Text>
+                </XStack>
+              </Pressable>
+            )}
+          </XStack>
+        </Animated.View>
+
         {/* Content */}
         <ScrollView
           flex={1}
@@ -198,6 +305,70 @@ export default function SpendingScreen() {
           <YStack height={100} />
         </ScrollView>
       </YStack>
+
+      {/* Time Period Picker Modal */}
+      <Modal
+        visible={showPeriodPicker}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowPeriodPicker(false)}
+      >
+        <Pressable 
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }}
+          onPress={() => setShowPeriodPicker(false)}
+        >
+          <Pressable onPress={() => {}}>
+            <YStack
+              backgroundColor="#fff"
+              borderTopLeftRadius={20}
+              borderTopRightRadius={20}
+              paddingTop={20}
+              paddingBottom={40}
+              paddingHorizontal={24}
+            >
+              <XStack justifyContent="space-between" alignItems="center" marginBottom={20}>
+                <Text fontSize={18} fontWeight="700" color="#111827">Select Time Period</Text>
+                <Pressable onPress={() => setShowPeriodPicker(false)}>
+                  <Text fontSize={24} color="#9ca3af">×</Text>
+                </Pressable>
+              </XStack>
+
+              <YStack gap={8}>
+                {TIME_PERIODS.map((period) => (
+                  <Pressable
+                    key={period.value}
+                    onPress={() => {
+                      setTimePeriod(period.value);
+                      setShowPeriodPicker(false);
+                    }}
+                  >
+                    <XStack
+                      backgroundColor={timePeriod === period.value ? '#e0f2fe' : '#f9fafb'}
+                      borderRadius={10}
+                      padding={14}
+                      borderWidth={1}
+                      borderColor={timePeriod === period.value ? '#0ea5e9' : '#e5e7eb'}
+                      justifyContent="space-between"
+                      alignItems="center"
+                    >
+                      <Text 
+                        fontSize={14} 
+                        color={timePeriod === period.value ? '#0369a1' : '#374151'}
+                        fontWeight={timePeriod === period.value ? '600' : '400'}
+                      >
+                        {period.label}
+                      </Text>
+                      {timePeriod === period.value && (
+                        <Text color="#0ea5e9">✓</Text>
+                      )}
+                    </XStack>
+                  </Pressable>
+                ))}
+              </YStack>
+            </YStack>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }

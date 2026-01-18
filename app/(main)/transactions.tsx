@@ -2,13 +2,14 @@
  * Transactions Screen
  * 
  * Shows all transactions with search, filters, and category breakdown.
+ * Features: time period filter, account filter, category details, transaction editing.
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
-import { YStack, XStack, Text, ScrollView, Spinner, Input } from 'tamagui';
+import { YStack, XStack, Text, ScrollView, Spinner, Input, Sheet } from 'tamagui';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Pressable, RefreshControl, TextInput } from 'react-native';
+import { Pressable, RefreshControl, TextInput, Modal } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
 import { Card } from '../../src/shared/components';
@@ -18,6 +19,8 @@ import {
   TransactionListResponse,
   MerchantSummary,
   MerchantListResponse,
+  ConnectedAccount,
+  PlaidApiService,
 } from '../../src/api/services';
 import { 
   SpendingService, 
@@ -25,8 +28,56 @@ import {
   RecurringTransactionsResponse,
 } from '../../src/api/services';
 import { formatCurrency } from '../../src/shared/utils';
+import { usePlaidStore } from '../../src/features/plaid/store';
 
 type ViewMode = 'all' | 'merchants' | 'recurring';
+
+// Time period options
+type TimePeriod = 'this_month' | 'last_month' | 'last_30' | 'last_90' | 'this_year' | 'all';
+
+const TIME_PERIODS: { value: TimePeriod; label: string }[] = [
+  { value: 'this_month', label: 'This Month' },
+  { value: 'last_month', label: 'Last Month' },
+  { value: 'last_30', label: 'Last 30 Days' },
+  { value: 'last_90', label: 'Last 90 Days' },
+  { value: 'this_year', label: 'This Year' },
+  { value: 'all', label: 'All Time' },
+];
+
+// Helper to get date range for a time period
+function getDateRange(period: TimePeriod): { start_date?: string; end_date?: string } {
+  const today = new Date();
+  const formatDate = (d: Date) => d.toISOString().split('T')[0];
+  
+  switch (period) {
+    case 'this_month': {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1);
+      return { start_date: formatDate(start), end_date: formatDate(today) };
+    }
+    case 'last_month': {
+      const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const end = new Date(today.getFullYear(), today.getMonth(), 0);
+      return { start_date: formatDate(start), end_date: formatDate(end) };
+    }
+    case 'last_30': {
+      const start = new Date(today);
+      start.setDate(start.getDate() - 30);
+      return { start_date: formatDate(start), end_date: formatDate(today) };
+    }
+    case 'last_90': {
+      const start = new Date(today);
+      start.setDate(start.getDate() - 90);
+      return { start_date: formatDate(start), end_date: formatDate(today) };
+    }
+    case 'this_year': {
+      const start = new Date(today.getFullYear(), 0, 1);
+      return { start_date: formatDate(start), end_date: formatDate(today) };
+    }
+    case 'all':
+    default:
+      return {};
+  }
+}
 
 // Category icons
 const CATEGORY_ICONS: Record<string, string> = {
@@ -41,10 +92,36 @@ const CATEGORY_ICONS: Record<string, string> = {
   'INCOME': '💰',
   'TRANSFER_IN': '↩️',
   'TRANSFER_OUT': '↪️',
+  'LOAN_PAYMENTS': '🏦',
+  'BANK_FEES': '🏛️',
+  'GENERAL_SERVICES': '🔧',
+  'HOME_IMPROVEMENT': '🔨',
+  'GOVERNMENT_AND_NON_PROFIT': '🏛️',
+};
+
+// Category display names
+const CATEGORY_NAMES: Record<string, string> = {
+  'FOOD_AND_DRINK': 'Food & Dining',
+  'ENTERTAINMENT': 'Entertainment',
+  'TRANSPORTATION': 'Transportation',
+  'GENERAL_MERCHANDISE': 'Shopping',
+  'RENT_AND_UTILITIES': 'Housing & Utilities',
+  'TRAVEL': 'Travel',
+  'MEDICAL': 'Healthcare',
+  'PERSONAL_CARE': 'Personal Care',
+  'INCOME': 'Income',
+  'TRANSFER_IN': 'Transfer In',
+  'TRANSFER_OUT': 'Transfer Out',
+  'LOAN_PAYMENTS': 'Loan Payments',
+  'BANK_FEES': 'Bank Fees',
+  'GENERAL_SERVICES': 'Services',
+  'HOME_IMPROVEMENT': 'Home Improvement',
+  'GOVERNMENT_AND_NON_PROFIT': 'Government',
 };
 
 export default function TransactionsScreen() {
   const router = useRouter();
+  const { connectedAccounts, refreshConnectedAccounts } = usePlaidStore();
   
   const [viewMode, setViewMode] = useState<ViewMode>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -56,14 +133,29 @@ export default function TransactionsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Filter state
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>('this_month');
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  
+  // Transaction detail modal state
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [editCategory, setEditCategory] = useState<string>('');
+  const [editNotes, setEditNotes] = useState<string>('');
 
   const fetchTransactions = useCallback(async (showLoading = true) => {
     if (showLoading) setIsLoading(true);
     setError(null);
     
     try {
+      const dateRange = getDateRange(timePeriod);
       const response = await TransactionService.getTransactions({
         search: searchQuery || undefined,
+        connected_account_id: selectedAccountId || undefined,
+        start_date: dateRange.start_date,
+        end_date: dateRange.end_date,
         limit: 100,
       });
       setTransactions(response.transactions);
@@ -75,16 +167,21 @@ export default function TransactionsScreen() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [searchQuery]);
+  }, [searchQuery, timePeriod, selectedAccountId]);
 
   const fetchMerchants = useCallback(async () => {
     try {
-      const response = await TransactionService.getMerchants({ limit: 50 });
+      const dateRange = getDateRange(timePeriod);
+      const response = await TransactionService.getMerchants({ 
+        limit: 50,
+        start_date: dateRange.start_date,
+        end_date: dateRange.end_date,
+      });
       setMerchants(response.merchants);
     } catch (err: any) {
       console.error('[Transactions] Error fetching merchants:', err);
     }
-  }, []);
+  }, [timePeriod]);
 
   const fetchRecurring = useCallback(async () => {
     try {
@@ -100,7 +197,14 @@ export default function TransactionsScreen() {
     fetchTransactions();
     fetchMerchants();
     fetchRecurring();
+    refreshConnectedAccounts();
   }, []);
+
+  // Refetch when filters change
+  useEffect(() => {
+    fetchTransactions(false);
+    fetchMerchants();
+  }, [timePeriod, selectedAccountId]);
 
   // Debounced search
   useEffect(() => {
@@ -119,9 +223,55 @@ export default function TransactionsScreen() {
     fetchRecurring();
   };
 
+  // Handle transaction selection
+  const handleTransactionPress = (txn: Transaction) => {
+    setSelectedTransaction(txn);
+    setEditCategory(txn.user_category || txn.category_primary || '');
+    setEditNotes(txn.user_notes || '');
+  };
+
+  // Save transaction changes
+  const handleSaveTransaction = async () => {
+    if (!selectedTransaction) return;
+    
+    setIsUpdating(true);
+    try {
+      await TransactionService.updateTransaction(selectedTransaction.id, {
+        user_category: editCategory || undefined,
+        user_notes: editNotes || undefined,
+      });
+      
+      // Refresh transactions
+      await fetchTransactions(false);
+      setSelectedTransaction(null);
+    } catch (err: any) {
+      console.error('[Transactions] Error updating:', err);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Get active filter count
+  const getActiveFilterCount = () => {
+    let count = 0;
+    if (timePeriod !== 'this_month') count++;
+    if (selectedAccountId) count++;
+    return count;
+  };
+
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const formatFullDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      month: 'long', 
+      day: 'numeric',
+      year: 'numeric'
+    });
   };
 
   const getCategoryIcon = (category?: string) => {
@@ -129,12 +279,30 @@ export default function TransactionsScreen() {
     return CATEGORY_ICONS[category] || '💳';
   };
 
+  const getCategoryName = (category?: string) => {
+    if (!category) return 'Uncategorized';
+    return CATEGORY_NAMES[category] || category.replace(/_/g, ' ').toLowerCase();
+  };
+
+  const formatDetailedCategory = (primary?: string, detailed?: string) => {
+    const primaryName = getCategoryName(primary);
+    if (detailed && detailed !== primary) {
+      const detailedName = detailed.replace(/_/g, ' ').toLowerCase();
+      // Avoid redundancy like "Food & Dining • food and drink"
+      if (detailedName !== primaryName.toLowerCase()) {
+        return `${primaryName} • ${detailedName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}`;
+      }
+    }
+    return primaryName;
+  };
+
   const renderTransactionRow = (txn: Transaction) => {
     const isIncome = txn.amount < 0;
     const displayAmount = Math.abs(txn.amount);
+    const displayCategory = txn.user_category || txn.category_primary;
     
     return (
-      <Pressable key={txn.id}>
+      <Pressable key={txn.id} onPress={() => handleTransactionPress(txn)}>
         <XStack
           paddingVertical={12}
           paddingHorizontal={16}
@@ -144,23 +312,33 @@ export default function TransactionsScreen() {
           alignItems="center"
         >
           <Text fontSize={24} marginRight={12}>
-            {getCategoryIcon(txn.category_primary)}
+            {getCategoryIcon(displayCategory)}
           </Text>
           <YStack flex={1}>
             <Text fontSize={14} fontWeight="500" color="#111827" numberOfLines={1}>
               {txn.merchant_name || txn.name}
             </Text>
-            <Text fontSize={12} color="#9ca3af">
-              {formatDate(txn.date)} • {txn.category_primary?.replace(/_/g, ' ').toLowerCase() || 'Uncategorized'}
+            <Text fontSize={12} color="#9ca3af" numberOfLines={1}>
+              {formatDate(txn.date)} • {formatDetailedCategory(displayCategory, txn.category_detailed)}
             </Text>
+            {txn.user_notes && (
+              <Text fontSize={11} color="#6b7280" numberOfLines={1} marginTop={2}>
+                📝 {txn.user_notes}
+              </Text>
+            )}
           </YStack>
-          <Text
-            fontSize={14}
-            fontWeight="600"
-            color={isIncome ? '#059669' : '#111827'}
-          >
-            {isIncome ? '+' : '-'}{formatCurrency(displayAmount)}
-          </Text>
+          <YStack alignItems="flex-end">
+            <Text
+              fontSize={14}
+              fontWeight="600"
+              color={isIncome ? '#059669' : '#111827'}
+            >
+              {isIncome ? '+' : '-'}{formatCurrency(displayAmount)}
+            </Text>
+            {txn.pending && (
+              <Text fontSize={10} color="#f59e0b">Pending</Text>
+            )}
+          </YStack>
         </XStack>
       </Pressable>
     );
@@ -302,6 +480,82 @@ export default function TransactionsScreen() {
               )}
             </XStack>
           </YStack>
+        </Animated.View>
+
+        {/* Filters Row */}
+        <Animated.View entering={FadeInDown.delay(175).springify()}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 20, gap: 8 }}
+            style={{ marginBottom: 12 }}
+          >
+            {/* Time Period Filter */}
+            <Pressable onPress={() => setShowFilters(true)}>
+              <XStack
+                backgroundColor={timePeriod !== 'this_month' ? '#e0f2fe' : '#fff'}
+                borderRadius={20}
+                paddingVertical={8}
+                paddingHorizontal={14}
+                borderWidth={1}
+                borderColor={timePeriod !== 'this_month' ? '#0ea5e9' : '#e5e7eb'}
+                alignItems="center"
+                gap={6}
+              >
+                <Text fontSize={13} color={timePeriod !== 'this_month' ? '#0369a1' : '#6b7280'}>
+                  📅 {TIME_PERIODS.find(p => p.value === timePeriod)?.label}
+                </Text>
+                <Text fontSize={10} color="#9ca3af">▼</Text>
+              </XStack>
+            </Pressable>
+
+            {/* Account Filter */}
+            {connectedAccounts.length > 0 && (
+              <Pressable onPress={() => setShowFilters(true)}>
+                <XStack
+                  backgroundColor={selectedAccountId ? '#e0f2fe' : '#fff'}
+                  borderRadius={20}
+                  paddingVertical={8}
+                  paddingHorizontal={14}
+                  borderWidth={1}
+                  borderColor={selectedAccountId ? '#0ea5e9' : '#e5e7eb'}
+                  alignItems="center"
+                  gap={6}
+                >
+                  <Text fontSize={13} color={selectedAccountId ? '#0369a1' : '#6b7280'}>
+                    🏦 {selectedAccountId 
+                      ? connectedAccounts.find(a => a.id === selectedAccountId)?.account_name || 'Account'
+                      : 'All Accounts'}
+                  </Text>
+                  <Text fontSize={10} color="#9ca3af">▼</Text>
+                </XStack>
+              </Pressable>
+            )}
+
+            {/* Clear Filters */}
+            {getActiveFilterCount() > 0 && (
+              <Pressable 
+                onPress={() => {
+                  setTimePeriod('this_month');
+                  setSelectedAccountId(null);
+                }}
+              >
+                <XStack
+                  backgroundColor="#fef2f2"
+                  borderRadius={20}
+                  paddingVertical={8}
+                  paddingHorizontal={14}
+                  borderWidth={1}
+                  borderColor="#fecaca"
+                  alignItems="center"
+                >
+                  <Text fontSize={13} color="#dc2626">
+                    ✕ Clear ({getActiveFilterCount()})
+                  </Text>
+                </XStack>
+              </Pressable>
+            )}
+          </ScrollView>
         </Animated.View>
 
         {/* View Mode Toggle */}
@@ -455,6 +709,345 @@ export default function TransactionsScreen() {
           <YStack height={40} />
         </ScrollView>
       </YStack>
+
+      {/* Filter Modal */}
+      <Modal
+        visible={showFilters}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowFilters(false)}
+      >
+        <Pressable 
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }}
+          onPress={() => setShowFilters(false)}
+        >
+          <Pressable onPress={() => {}}>
+            <YStack
+              backgroundColor="#fff"
+              borderTopLeftRadius={20}
+              borderTopRightRadius={20}
+              paddingTop={20}
+              paddingBottom={40}
+              paddingHorizontal={20}
+            >
+              <XStack justifyContent="space-between" alignItems="center" marginBottom={20}>
+                <Text fontSize={18} fontWeight="700" color="#111827">Filters</Text>
+                <Pressable onPress={() => setShowFilters(false)}>
+                  <Text fontSize={24} color="#9ca3af">×</Text>
+                </Pressable>
+              </XStack>
+
+              {/* Time Period */}
+              <Text fontSize={14} fontWeight="600" color="#374151" marginBottom={10}>
+                Time Period
+              </Text>
+              <YStack gap={8} marginBottom={20}>
+                {TIME_PERIODS.map((period) => (
+                  <Pressable
+                    key={period.value}
+                    onPress={() => setTimePeriod(period.value)}
+                  >
+                    <XStack
+                      backgroundColor={timePeriod === period.value ? '#e0f2fe' : '#f9fafb'}
+                      borderRadius={10}
+                      padding={14}
+                      borderWidth={1}
+                      borderColor={timePeriod === period.value ? '#0ea5e9' : '#e5e7eb'}
+                      justifyContent="space-between"
+                      alignItems="center"
+                    >
+                      <Text 
+                        fontSize={14} 
+                        color={timePeriod === period.value ? '#0369a1' : '#374151'}
+                        fontWeight={timePeriod === period.value ? '600' : '400'}
+                      >
+                        {period.label}
+                      </Text>
+                      {timePeriod === period.value && (
+                        <Text color="#0ea5e9">✓</Text>
+                      )}
+                    </XStack>
+                  </Pressable>
+                ))}
+              </YStack>
+
+              {/* Account Filter */}
+              {connectedAccounts.length > 0 && (
+                <>
+                  <Text fontSize={14} fontWeight="600" color="#374151" marginBottom={10}>
+                    Account
+                  </Text>
+                  <YStack gap={8} marginBottom={20}>
+                    <Pressable onPress={() => setSelectedAccountId(null)}>
+                      <XStack
+                        backgroundColor={!selectedAccountId ? '#e0f2fe' : '#f9fafb'}
+                        borderRadius={10}
+                        padding={14}
+                        borderWidth={1}
+                        borderColor={!selectedAccountId ? '#0ea5e9' : '#e5e7eb'}
+                        justifyContent="space-between"
+                        alignItems="center"
+                      >
+                        <Text 
+                          fontSize={14} 
+                          color={!selectedAccountId ? '#0369a1' : '#374151'}
+                          fontWeight={!selectedAccountId ? '600' : '400'}
+                        >
+                          All Accounts
+                        </Text>
+                        {!selectedAccountId && (
+                          <Text color="#0ea5e9">✓</Text>
+                        )}
+                      </XStack>
+                    </Pressable>
+                    {connectedAccounts.map((account) => (
+                      <Pressable
+                        key={account.id}
+                        onPress={() => setSelectedAccountId(account.id)}
+                      >
+                        <XStack
+                          backgroundColor={selectedAccountId === account.id ? '#e0f2fe' : '#f9fafb'}
+                          borderRadius={10}
+                          padding={14}
+                          borderWidth={1}
+                          borderColor={selectedAccountId === account.id ? '#0ea5e9' : '#e5e7eb'}
+                          justifyContent="space-between"
+                          alignItems="center"
+                        >
+                          <YStack flex={1}>
+                            <Text 
+                              fontSize={14} 
+                              color={selectedAccountId === account.id ? '#0369a1' : '#374151'}
+                              fontWeight={selectedAccountId === account.id ? '600' : '400'}
+                            >
+                              {account.account_name}
+                            </Text>
+                            <Text fontSize={12} color="#9ca3af">
+                              {account.institution_name}
+                            </Text>
+                          </YStack>
+                          {selectedAccountId === account.id && (
+                            <Text color="#0ea5e9">✓</Text>
+                          )}
+                        </XStack>
+                      </Pressable>
+                    ))}
+                  </YStack>
+                </>
+              )}
+
+              <Pressable onPress={() => setShowFilters(false)}>
+                <YStack
+                  backgroundColor="#1e3a5f"
+                  borderRadius={10}
+                  padding={16}
+                  alignItems="center"
+                >
+                  <Text fontSize={16} fontWeight="600" color="#fff">
+                    Apply Filters
+                  </Text>
+                </YStack>
+              </Pressable>
+            </YStack>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Transaction Detail Modal */}
+      <Modal
+        visible={selectedTransaction !== null}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setSelectedTransaction(null)}
+      >
+        <Pressable 
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }}
+          onPress={() => setSelectedTransaction(null)}
+        >
+          <Pressable onPress={() => {}}>
+            <YStack
+              backgroundColor="#fff"
+              borderTopLeftRadius={20}
+              borderTopRightRadius={20}
+              paddingTop={20}
+              paddingBottom={40}
+              paddingHorizontal={20}
+              maxHeight="85%"
+            >
+              <ScrollView showsVerticalScrollIndicator={false}>
+                {selectedTransaction && (
+                  <>
+                    {/* Header */}
+                    <XStack justifyContent="space-between" alignItems="flex-start" marginBottom={20}>
+                      <YStack flex={1}>
+                        <Text fontSize={14} color="#9ca3af" marginBottom={4}>
+                          {formatFullDate(selectedTransaction.date)}
+                        </Text>
+                        <Text fontSize={20} fontWeight="700" color="#111827" numberOfLines={2}>
+                          {selectedTransaction.merchant_name || selectedTransaction.name}
+                        </Text>
+                      </YStack>
+                      <Pressable onPress={() => setSelectedTransaction(null)}>
+                        <Text fontSize={24} color="#9ca3af">×</Text>
+                      </Pressable>
+                    </XStack>
+
+                    {/* Amount */}
+                    <YStack 
+                      backgroundColor="#f9fafb" 
+                      borderRadius={12} 
+                      padding={16} 
+                      marginBottom={20}
+                      alignItems="center"
+                    >
+                      <Text 
+                        fontSize={36} 
+                        fontWeight="700" 
+                        color={selectedTransaction.amount < 0 ? '#059669' : '#111827'}
+                      >
+                        {selectedTransaction.amount < 0 ? '+' : '-'}
+                        {formatCurrency(Math.abs(selectedTransaction.amount))}
+                      </Text>
+                      {selectedTransaction.pending && (
+                        <XStack 
+                          backgroundColor="#fef3c7" 
+                          paddingHorizontal={10} 
+                          paddingVertical={4} 
+                          borderRadius={12}
+                          marginTop={8}
+                        >
+                          <Text fontSize={12} color="#b45309">Pending</Text>
+                        </XStack>
+                      )}
+                    </YStack>
+
+                    {/* Details */}
+                    <YStack gap={12} marginBottom={20}>
+                      <XStack justifyContent="space-between">
+                        <Text fontSize={14} color="#9ca3af">Category</Text>
+                        <XStack alignItems="center" gap={6}>
+                          <Text fontSize={18}>
+                            {getCategoryIcon(selectedTransaction.user_category || selectedTransaction.category_primary)}
+                          </Text>
+                          <Text fontSize={14} color="#374151">
+                            {formatDetailedCategory(
+                              selectedTransaction.user_category || selectedTransaction.category_primary, 
+                              selectedTransaction.category_detailed
+                            )}
+                          </Text>
+                        </XStack>
+                      </XStack>
+
+                      {selectedTransaction.payment_channel && (
+                        <XStack justifyContent="space-between">
+                          <Text fontSize={14} color="#9ca3af">Payment Method</Text>
+                          <Text fontSize={14} color="#374151">
+                            {selectedTransaction.payment_channel.charAt(0).toUpperCase() + 
+                             selectedTransaction.payment_channel.slice(1)}
+                          </Text>
+                        </XStack>
+                      )}
+
+                      {(selectedTransaction.location_city || selectedTransaction.location_region) && (
+                        <XStack justifyContent="space-between">
+                          <Text fontSize={14} color="#9ca3af">Location</Text>
+                          <Text fontSize={14} color="#374151">
+                            {[selectedTransaction.location_city, selectedTransaction.location_region]
+                              .filter(Boolean).join(', ')}
+                          </Text>
+                        </XStack>
+                      )}
+                    </YStack>
+
+                    {/* Edit Section */}
+                    <YStack 
+                      backgroundColor="#f9fafb" 
+                      borderRadius={12} 
+                      padding={16}
+                      marginBottom={20}
+                    >
+                      <Text fontSize={14} fontWeight="600" color="#374151" marginBottom={12}>
+                        Customize
+                      </Text>
+
+                      {/* Category Override */}
+                      <YStack marginBottom={16}>
+                        <Text fontSize={12} color="#9ca3af" marginBottom={6}>
+                          Category (leave blank to use auto-detected)
+                        </Text>
+                        <TextInput
+                          value={editCategory}
+                          onChangeText={setEditCategory}
+                          placeholder={selectedTransaction.category_primary || 'Enter category...'}
+                          placeholderTextColor="#9ca3af"
+                          style={{
+                            backgroundColor: '#fff',
+                            borderWidth: 1,
+                            borderColor: '#e5e7eb',
+                            borderRadius: 8,
+                            paddingHorizontal: 12,
+                            paddingVertical: 10,
+                            fontSize: 14,
+                            color: '#111827',
+                          }}
+                        />
+                      </YStack>
+
+                      {/* Notes */}
+                      <YStack>
+                        <Text fontSize={12} color="#9ca3af" marginBottom={6}>
+                          Notes
+                        </Text>
+                        <TextInput
+                          value={editNotes}
+                          onChangeText={setEditNotes}
+                          placeholder="Add a note..."
+                          placeholderTextColor="#9ca3af"
+                          multiline
+                          numberOfLines={3}
+                          style={{
+                            backgroundColor: '#fff',
+                            borderWidth: 1,
+                            borderColor: '#e5e7eb',
+                            borderRadius: 8,
+                            paddingHorizontal: 12,
+                            paddingVertical: 10,
+                            fontSize: 14,
+                            color: '#111827',
+                            minHeight: 80,
+                            textAlignVertical: 'top',
+                          }}
+                        />
+                      </YStack>
+                    </YStack>
+
+                    {/* Save Button */}
+                    <Pressable 
+                      onPress={handleSaveTransaction}
+                      disabled={isUpdating}
+                    >
+                      <YStack
+                        backgroundColor={isUpdating ? '#9ca3af' : '#1e3a5f'}
+                        borderRadius={10}
+                        padding={16}
+                        alignItems="center"
+                      >
+                        {isUpdating ? (
+                          <Spinner size="small" color="#fff" />
+                        ) : (
+                          <Text fontSize={16} fontWeight="600" color="#fff">
+                            Save Changes
+                          </Text>
+                        )}
+                      </YStack>
+                    </Pressable>
+                  </>
+                )}
+              </ScrollView>
+            </YStack>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }

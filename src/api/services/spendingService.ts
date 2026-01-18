@@ -131,10 +131,15 @@ class SpendingServiceClass {
 
   /**
    * Get cash flow summary with income vs expenses.
+   * @param months Number of months of history to include
+   * @param excludeTransfers Whether to exclude transfers (default: true)
    */
-  async getCashFlow(months: number = 6): Promise<CashFlowSummaryResponse> {
+  async getCashFlow(months: number = 6, excludeTransfers: boolean = true): Promise<CashFlowSummaryResponse> {
+    const params = new URLSearchParams();
+    params.append('months', months.toString());
+    params.append('exclude_transfers', excludeTransfers.toString());
     return ApiClient.get<CashFlowSummaryResponse>(
-      `/spending/cashflow?months=${months}`
+      `/spending/cashflow?${params.toString()}`
     );
   }
 

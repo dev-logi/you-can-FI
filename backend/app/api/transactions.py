@@ -89,6 +89,7 @@ def get_merchants(
     limit: int = Query(50, ge=1, le=100),
     start_date: Optional[date] = Query(None, description="Filter transactions from this date"),
     end_date: Optional[date] = Query(None, description="Filter transactions until this date"),
+    account_id: Optional[str] = Query(None, description="Filter by connected account ID"),
     db: Session = Depends(get_db),
     user_id: str = Depends(get_current_user)
 ):
@@ -98,10 +99,20 @@ def get_merchants(
     Returns merchants sorted by total spending (highest first).
     Only includes expense transactions (positive amounts).
     """
+    # Verify account belongs to user if specified
+    if account_id:
+        account = connected_account_repository.get(db, account_id, user_id)
+        if not account:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Connected account not found"
+            )
+    
     merchant_data = transaction_repository.get_merchant_summary(
         db, user_id,
         start_date=start_date,
         end_date=end_date,
+        account_id=account_id,
         limit=limit
     )
     

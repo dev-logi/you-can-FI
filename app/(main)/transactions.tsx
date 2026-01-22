@@ -176,12 +176,13 @@ export default function TransactionsScreen() {
         limit: 50,
         start_date: dateRange.start_date,
         end_date: dateRange.end_date,
+        account_id: selectedAccountId || undefined,
       });
       setMerchants(response.merchants);
     } catch (err: any) {
       console.error('[Transactions] Error fetching merchants:', err);
     }
-  }, [timePeriod]);
+  }, [timePeriod, selectedAccountId]);
 
   const fetchRecurring = useCallback(async () => {
     try {

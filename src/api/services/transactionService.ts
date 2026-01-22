@@ -174,6 +174,7 @@ class TransactionServiceClass {
   async getMerchants(filters?: {
     start_date?: string;
     end_date?: string;
+    account_id?: string;
     limit?: number;
   }): Promise<MerchantListResponse> {
     const params = new URLSearchParams();
@@ -183,6 +184,9 @@ class TransactionServiceClass {
     }
     if (filters?.end_date) {
       params.append('end_date', filters.end_date);
+    }
+    if (filters?.account_id) {
+      params.append('account_id', filters.account_id);
     }
     if (filters?.limit) {
       params.append('limit', filters.limit.toString());

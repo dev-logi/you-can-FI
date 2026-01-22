@@ -260,6 +260,7 @@ class TransactionRepository(BaseRepository[Transaction]):
         user_id: str,
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
+        account_id: Optional[str] = None,
         limit: int = 50,
     ) -> List[dict]:
         """Get spending summary grouped by merchant."""
@@ -275,6 +276,8 @@ class TransactionRepository(BaseRepository[Transaction]):
             Transaction.amount > 0,  # Only expenses (positive amounts from Plaid)
         )
         
+        if account_id:
+            query = query.filter(Transaction.connected_account_id == account_id)
         if start_date:
             query = query.filter(Transaction.date >= start_date)
         if end_date:

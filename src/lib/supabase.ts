@@ -8,16 +8,11 @@ import { createClient } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-// Supabase configuration - must be set via environment variables
-// See .env.example for required variables
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  throw new Error(
-    'Missing Supabase configuration. Please set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY environment variables. See .env.example for details.'
-  );
-}
+// Supabase configuration
+// These are public values (anon key is safe to expose in client code)
+// Can be overridden via environment variables if needed
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://cwsoawrcxogoxrgmtowx.supabase.co';
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3c29hd3JjeG9nb3hyZ210b3d4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzcxMDMsImV4cCI6MjA4MTQxMzEwM30.Ei4_D44jywFpkneIKRHkSFMGL8MVodBYEof82xlZ-iU';
 
 /**
  * Custom storage adapter for React Native using expo-secure-store

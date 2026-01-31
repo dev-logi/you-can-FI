@@ -43,3 +43,18 @@ yarn-error.*
 # Build artifacts
 *.ipa
 build-*.ipa
+
+# Backend coverage reports
+backend/htmlcov/
+backend/coverage.xml
+backend/__pycache__/
+backend/**/__pycache__/
+
+# Python virtual environment
+backend/venv/
+
+# Environment files (keep .env.example)
+.env
+backend/.env
+.cursor/
+prototype/
